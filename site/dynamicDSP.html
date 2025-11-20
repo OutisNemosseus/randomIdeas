@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dynamic DSP Plot with Pyodide</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 20px;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    .controls {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      background: #111827;
+      border: 1px solid #1f2937;
+      max-width: 600px;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    input[type="range"] {
+      width: 300px;
+    }
+    #status {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+    .plot-container {
+      margin-top: 1rem;
+    }
+    #dsp-plot {
+      max-width: 100%;
+      border-radius: 0.75rem;
+      border: 1px solid #1f2937;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dynamic DSP Frequency Response (Pyodide)</h1>
+  <p>拖动滑块改变滤波器系数 <code>a</code>，浏览器会实时用 Python + Matplotlib 重新绘图。</p>
+
+  <div class="controls">
+    <div class="slider-row">
+      <label for="a-slider">Filter coefficient a:</label>
+      <input id="a-slider" type="range" min="-2" max="2" step="0.1" value="1" />
+      <span id="a-value">1.0</span>
+    </div>
+    <div id="status">Loading Pyodide…</div>
+  </div>
+
+  <div class="plot-container">
+    <img id="dsp-plot" alt="DSP Plot will appear here" />
+  </div>
+
+  <!-- 加载 Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+  <script>
+    let pyodide = null;
+    let isReady = false;
+    const statusEl = document.getElementById("status");
+    const imgEl = document.getElementById("dsp-plot");
+    const sliderEl = document.getElementById("a-slider");
+    const valueEl = document.getElementById("a-value");
+
+    async function initPyodideAndPython() {
+      try {
+        statusEl.textContent = "Loading Pyodide core…";
+        pyodide = await loadPyodide();
+
+        statusEl.textContent = "Loading numpy & matplotlib packages…";
+        await pyodide.loadPackage(["numpy", "matplotlib"]);
+
+        // 定义 Python 代码：freqz_no_scipy + plot_dsp()
+        const pythonCode = `
+import matplotlib
+matplotlib.use("Agg")  # 使用无界面的后端
+import matplotlib.pyplot as plt
+import numpy as np
+import io
+import base64
+
+def freqz_no_scipy(h, w):
+    """
+    代替 scipy.signal.freqz 的简易实现：
+    H(e^{jω}) = sum h[n] * e^{-j ω n}
+    """
+    h = np.asarray(h)
+    n = np.arange(len(h))
+    H = np.zeros_like(w, dtype=complex)
+    for k in range(len(w)):
+        H[k] = np.sum(h * np.exp(-1j * w[k] * n))
+    return H
+
+def plot_dsp(a_value):
+    # Filter: h = [1, a, 1]
+    h = np.array([1.0, float(a_value), 1.0])
+    w = np.arange(0, 501) * np.pi / 500
+
+    H = freqz_no_scipy(h, w)
+    magH = np.abs(H)
+    phaH = np.angle(H)
+
+    # 这里 ampH / angH 你可以按需要改，这里先保持简单
+    ampH = np.ones(501) + 2 * np.cos(w)
+    angH = -w
+
+    plt.figure(figsize=(8, 8))
+
+    # Magnitude Response
+    plt.subplot(2, 2, 1)
+    plt.plot(w/np.pi, magH)
+    plt.title(f'Magnitude Response (a={a_value:.2f})')
+    plt.xlabel('frequency in π units')
+    plt.ylabel('|H|')
+    plt.grid(True)
+    plt.xlim(0, 1)
+    plt.ylim(-1.5, 3.5)
+    plt.xticks([0, 2/3, 1], ['0','2/3','1'])
+    plt.yticks([0])
+
+    # Phase Response
+    plt.subplot(2, 2, 3)
+    plt.plot(w/np.pi, phaH/np.pi)
+    plt.title('Piecewise Linear Phase Response')
+    plt.xlabel('frequency in π units')
+    plt.ylabel('angle / π')
+    plt.grid(True)
+    plt.xlim(0, 1)
+    plt.ylim(-1, 1)
+    plt.xticks([0, 2/3, 1], ['0','2/3','1'])
+    plt.yticks([-2/3, 0, 1/3], ['-2/3','0','2/3'])
+
+    # Amplitude Response
+    plt.subplot(2, 2, 2)
+    plt.plot(w/np.pi, ampH)
+    plt.title('Amplitude Response')
+    plt.xlabel('frequency in π units')
+    plt.ylabel('Hr')
+    plt.grid(True)
+    plt.xlim(0, 1)
+    plt.ylim(-1.5, 3.5)
+    plt.xticks([0, 2/3, 1], ['0','2/3','1'])
+    plt.yticks([0])
+
+    # Linear Phase Response
+    plt.subplot(2, 2, 4)
+    plt.plot(w/np.pi, angH/np.pi)
+    plt.title('Linear Phase Response')
+    plt.xlabel('frequency in π units')
+    plt.ylabel('angle / π')
+    plt.grid(True)
+    plt.xlim(0, 1)
+    plt.ylim(-1, 1)
+    plt.xticks([0, 2/3, 1], ['0','2/3','1'])
+    plt.yticks([-2/3, 0], ['-2/3','0'])
+
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close()
+    return "data:image/png;base64," + img_base64
+`;
+        statusEl.textContent = "Initializing Python code…";
+        await pyodide.runPythonAsync(pythonCode);
+
+        isReady = true;
+        statusEl.textContent = "Ready. Drag the slider to update the plot.";
+        // 初始画一次
+        await updatePlot(parseFloat(sliderEl.value));
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error initializing Pyodide: " + err;
+      }
+    }
+
+    async function updatePlot(a) {
+      if (!isReady) return;
+      statusEl.textContent = `Rendering with a = ${a.toFixed(2)} …`;
+      try {
+        // 在 Python 里调用 plot_dsp(a)，并返回 base64 data URL
+        const code = `
+img = plot_dsp(${a})
+img
+`;
+        const imgSrc = await pyodide.runPythonAsync(code);
+        imgEl.src = imgSrc;
+        statusEl.textContent = `Rendered with a = ${a.toFixed(2)}.`;
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error updating plot: " + err;
+      }
+    }
+
+    // slider 监听
+    sliderEl.addEventListener("input", (e) => {
+      const a = parseFloat(e.target.value);
+      valueEl.textContent = a.toFixed(1);
+      // 实时更新图像
+      updatePlot(a);
+    });
+
+    // 启动
+    initPyodideAndPython();
+  </script>
+</body>
+</html>
