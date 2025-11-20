@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chladni Patterns (Pyodide)</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .param-row {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .play-btn {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    .play-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .slider-container {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .slider-label-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    #controls-bottom {
+      margin-top: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    #plot {
+      max-width: 100%;
+      border: 1px solid #ddd;
+      margin-top: 1rem;
+    }
+    #status {
+      margin-top: 0.3rem;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    /* Python 代码区域 */
+    #code-section {
+      margin-top: 2rem;
+      border-top: 1px solid #ddd;
+      padding-top: 1rem;
+    }
+    #py-code {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    #copy-btn {
+      margin-bottom: 0.5rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chladni Patterns (Pyodide)</h1>
+  <p>
+    公式：<code>0 = a·sin(π n x)·sin(π m y) + b·sin(π m x)·sin(π n y)</code><br />
+    每一行的 ▶ 都可以单独播放，同一时间可以让多个参数一起变化。
+  </p>
+
+  <!-- a 参数 -->
+  <div class="param-row">
+    <button class="play-btn" id="play-a" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>a</span>
+        <span id="a-value">1.0</span>
+      </div>
+      <input id="a" type="range" min="-10" max="10" step="0.5" value="1" />
+    </div>
+  </div>
+
+  <!-- n 参数 -->
+  <div class="param-row">
+    <button class="play-btn" id="play-n" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>n</span>
+        <span id="n-value">2</span>
+      </div>
+      <input id="n" type="range" min="0" max="10" step="1" value="2" />
+    </div>
+  </div>
+
+  <!-- m 参数 -->
+  <div class="param-row">
+    <button class="play-btn" id="play-m" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>m</span>
+        <span id="m-value">7</span>
+      </div>
+      <input id="m" type="range" min="0" max="10" step="1" value="7" />
+    </div>
+  </div>
+
+  <!-- b 参数 -->
+  <div class="param-row">
+    <button class="play-btn" id="play-b" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>b</span>
+        <span id="b-value">1.0</span>
+      </div>
+      <input id="b" type="range" min="-10" max="10" step="0.5" value="1" />
+    </div>
+  </div>
+
+  <div id="controls-bottom">
+    <button id="run-btn" disabled>Generate Once</button>
+    <span id="status">Loading Pyodide…</span>
+  </div>
+
+  <img id="plot" alt="Chladni pattern will appear here" />
+
+  <!-- Python 代码展示 + 复制 -->
+  <section id="code-section">
+    <h2>Python 代码（NumPy + Matplotlib）</h2>
+    <button id="copy-btn">复制 Python 代码</button>
+    <pre id="py-code"></pre>
+  </section>
+
+  <!-- 加载 Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+  <script>
+    let pyodide = null;
+    let isReady = false;
+
+    const statusEl = document.getElementById("status");
+    const plotEl = document.getElementById("plot");
+    const runBtn = document.getElementById("run-btn");
+
+    const sliders = {
+      a: document.getElementById("a"),
+      n: document.getElementById("n"),
+      m: document.getElementById("m"),
+      b: document.getElementById("b"),
+    };
+    const labels = {
+      a: document.getElementById("a-value"),
+      n: document.getElementById("n-value"),
+      m: document.getElementById("m-value"),
+      b: document.getElementById("b-value"),
+    };
+    const playButtons = {
+      a: document.getElementById("play-a"),
+      n: document.getElementById("play-n"),
+      m: document.getElementById("play-m"),
+      b: document.getElementById("play-b"),
+    };
+
+    // 每个参数的动画状态（允许多个同时播放）
+    const animState = {
+      a: { playing: false, dir: 1, timer: null },
+      n: { playing: false, dir: 1, timer: null },
+      m: { playing: false, dir: 1, timer: null },
+      b: { playing: false, dir: 1, timer: null },
+    };
+
+    // Python 代码（给 Pyodide 用 + 展示在页面）
+    const pythonCode = `
+import numpy as np
+import io, base64
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+def generate_chladni_general(n, m, a, b, N=300):
+    """
+    Chladni pattern:
+        0 = a sin(pi n x) sin(pi m y) + b sin(pi m x) sin(pi n y)
+    Returns base64-encoded PNG of the node lines (Z = 0).
+    """
+    x = np.linspace(0.0, 1.0, N)
+    y = np.linspace(0.0, 1.0, N)
+    X, Y = np.meshgrid(x, y)
+
+    Z = a * np.sin(np.pi * n * X) * np.sin(np.pi * m * Y) + \
+        b * np.sin(np.pi * m * X) * np.sin(np.pi * n * Y)
+
+    fig, ax = plt.subplots(figsize=(4, 4), dpi=150)
+    # only plot the node lines (Z = 0)
+    ax.contour(X, Y, Z, levels=[0.0], linewidths=0.6)
+    ax.set_aspect("equal")
+    ax.axis("off")
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
+    plt.close(fig)
+    buf.seek(0)
+    img_b64 = base64.b64encode(buf.read()).decode("ascii")
+    return "data:image/png;base64," + img_b64
+`;
+
+    // 显示 Python 代码
+    const codeBlock = document.getElementById("py-code");
+    if (codeBlock) codeBlock.textContent = pythonCode;
+
+    // 复制 Python 代码按钮
+    const copyBtn = document.getElementById("copy-btn");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(pythonCode);
+          const old = copyBtn.textContent;
+          copyBtn.textContent = "已复制 ✓";
+          setTimeout(() => {
+            copyBtn.textContent = old;
+          }, 1200);
+        } catch (e) {
+          alert("复制失败，可能浏览器不支持 clipboard API");
+        }
+      });
+    }
+
+    // slider 更新 label + 实时重绘
+    Object.keys(sliders).forEach((name) => {
+      sliders[name].addEventListener("input", () => {
+        const v = parseFloat(sliders[name].value);
+        labels[name].textContent = Number.isInteger(v) ? String(v) : v.toFixed(1);
+        updatePlot(); // 手动拖动就实时更新
+      });
+    });
+
+    // 初始化 Pyodide & Python
+    async function initPyodideAndPython() {
+      try {
+        statusEl.textContent = "Loading Pyodide core…";
+        pyodide = await loadPyodide(); // 和你能跑的 demo 一样
+
+        statusEl.textContent = "Loading numpy & matplotlib…";
+        await pyodide.loadPackage(["numpy", "matplotlib"]);
+
+        statusEl.textContent = "Initializing Python code…";
+        await pyodide.runPythonAsync(pythonCode);
+
+        isReady = true;
+        statusEl.textContent = "Ready. 拖动滑块或按 ▶ 播放。";
+        runBtn.disabled = false;
+        Object.values(playButtons).forEach((btn) => (btn.disabled = false));
+
+        // 初始画一次
+        await updatePlot();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error initializing Pyodide: " + err;
+      }
+    }
+
+    // 调用 Python 画图
+    async function updatePlot(fromAnimation = false) {
+      if (!isReady) return;
+
+      const a = parseFloat(sliders.a.value);
+      const n = parseFloat(sliders.n.value);
+      const m = parseFloat(sliders.m.value);
+      const b = parseFloat(sliders.b.value);
+
+      if (!fromAnimation) {
+        statusEl.textContent = `Rendering (a=${a}, n=${n}, m=${m}, b=${b}) …`;
+      }
+
+      try {
+        const code = `
+img = generate_chladni_general(n=${n}, m=${m}, a=${a}, b=${b})
+img
+`;
+        const imgSrc = await pyodide.runPythonAsync(code);
+        plotEl.src = imgSrc;
+        if (!fromAnimation) {
+          statusEl.textContent = `Rendered (a=${a}, n=${n}, m=${m}, b=${b}).`;
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error updating plot: " + err;
+      }
+    }
+
+    runBtn.addEventListener("click", () => updatePlot(false));
+
+    // 播放逻辑：每个参数可以独立播放
+    function toggleParamAnimation(name) {
+      if (!isReady) return;
+      const st = animState[name];
+      const slider = sliders[name];
+      const label = labels[name];
+      const btn = playButtons[name];
+
+      if (st.playing) {
+        // 关闭
+        clearInterval(st.timer);
+        st.timer = null;
+        st.playing = false;
+        btn.textContent = "▶";
+        return;
+      }
+
+      // 开启
+      st.playing = true;
+      st.dir = 1;
+      btn.textContent = "⏸";
+
+      const step = parseFloat(slider.step) || 0.5;
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+
+      st.timer = setInterval(async () => {
+        let v = parseFloat(slider.value);
+        v += st.dir * step;
+        if (v > max) {
+          v = max;
+          st.dir = -1;
+        } else if (v < min) {
+          v = min;
+          st.dir = 1;
+        }
+        slider.value = v;
+        label.textContent = Number.isInteger(v) ? String(v) : v.toFixed(1);
+
+        await updatePlot(true);
+      }, 700); // 播放速度
+    }
+
+    Object.keys(playButtons).forEach((name) => {
+      playButtons[name].addEventListener("click", () => toggleParamAnimation(name));
+    });
+
+    // 启动
+    initPyodideAndPython();
+  </script>
+</body>
+</html>
