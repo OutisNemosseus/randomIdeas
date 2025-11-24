@@ -1,0 +1,49 @@
+name: Auto-generate index.html
+
+on:
+  push:
+    branches:
+      - main   # 如果你的默认分支是 master，这里改成 master
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-update-index:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate index.html
+        working-directory: site
+        run: |
+          python generate_index.py
+
+      - name: Add footer to HTML files
+        working-directory: site
+        run: |
+          python auto_footer.py
+
+      - name: Commit and push changes
+        working-directory: site
+        run: |
+          git status
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Changes found, committing..."
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add *.html
+            git commit -m "Auto-update index.html & footer [skip ci]"
+            git push
+          else
+            echo "No changes."
+          fi
