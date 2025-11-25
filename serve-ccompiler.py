@@ -23,8 +23,8 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     PORT = 8080
 
-    print(f'\n🚀 Server running at http://localhost:{PORT}/')
-    print(f'📝 Serving CCompiler.html with Cross-Origin Isolation headers\n')
+    print(f'\nServer running at http://localhost:{PORT}/')
+    print(f'Serving CCompiler.html with Cross-Origin Isolation headers\n')
     print(f'   Cross-Origin-Opener-Policy: same-origin')
     print(f'   Cross-Origin-Embedder-Policy: require-corp\n')
     print(f'Press Ctrl+C to stop\n')

@@ -93,7 +93,7 @@
 ========================================================== */
 import { init, Wasmer, Directory }
   from "https://cdn.jsdelivr.net/npm/@wasmer/sdk@0.9.0/dist/index.mjs";
-import { WASI } from "https://cdn.jsdelivr.net/npm/@wasmer/wasi@1.2.2/+esm";
+import { WASI, File, OpenFile, PreopenDirectory } from "https://cdn.jsdelivr.net/npm/@bjorn3/browser_wasi_shim@0.3.0/dist/index.js";
 
 let clangPromise = null;
 let wasmerInited = false;
@@ -261,36 +261,43 @@ async function compileC(codeStr) {
   }
 }
 
-// Run wasm using @wasmer/wasi runtime
+// Run wasm using browser_wasi_shim
 async function runWasmProgram(wasmBytes) {
   const bytes = wasmBytes instanceof Uint8Array ? wasmBytes : new Uint8Array(wasmBytes);
 
   try {
-    // Create WASI instance with stdout/stderr capture
-    const wasi = new WASI({
-      args: [],
-      env: {},
-    });
+    // Create output capture arrays
+    let stdoutBuffer = [];
+    let stderrBuffer = [];
 
-    // Compile the WASM module
+    // Create stdout/stderr files that capture output
+    const stdoutFile = new OpenFile(new File([]));
+    stdoutFile.write = (buf) => {
+      stdoutBuffer.push(new TextDecoder().decode(buf));
+      return buf.byteLength;
+    };
+
+    const stderrFile = new OpenFile(new File([]));
+    stderrFile.write = (buf) => {
+      stderrBuffer.push(new TextDecoder().decode(buf));
+      return buf.byteLength;
+    };
+
+    // Create WASI instance
+    const wasi = new WASI([], [], [stdoutFile, stderrFile]);
+
+    // Compile and instantiate the WASM module
     const module = await WebAssembly.compile(bytes);
-
-    // Get WASI imports
-    const imports = wasi.getImports(module);
-
-    // Instantiate with WASI imports
-    const instance = await WebAssembly.instantiate(module, imports);
+    const instance = await WebAssembly.instantiate(module, {
+      wasi_snapshot_preview1: wasi.wasiImport,
+    });
 
     // Start the WASI program
     wasi.start(instance);
 
-    // Get captured output
-    const stdout = wasi.getStdoutString();
-    const stderr = wasi.getStderrString();
-
     return {
-      stdout: stdout || "",
-      stderr: stderr || ""
+      stdout: stdoutBuffer.join(""),
+      stderr: stderrBuffer.join("")
     };
 
   } catch (e) {
