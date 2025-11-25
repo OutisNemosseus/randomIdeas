@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>多标签页功能改进版详解 - 第二版 (commit 91a5060)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+      background: #1e1e1e; color: #d4d4d4;
+      padding: 40px;
+      line-height: 1.8;
+    }
+    h1 {
+      color: #4ec9b0;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 3px solid #3e3e42;
+    }
+    h2 {
+      color: #569cd6;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3e3e42;
+    }
+    h3 {
+      color: #dcdcaa;
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+    h4 {
+      color: #c586c0;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    ul, ol {
+      margin-left: 30px;
+      margin-bottom: 15px;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+    code {
+      background: #2d2d30;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #ce9178;
+      font-family: 'Consolas', monospace;
+      font-size: 0.95em;
+    }
+    pre {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 15px 0;
+      border-left: 4px solid #569cd6;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      color: #d4d4d4;
+    }
+    .section {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .important {
+      background: #3e2f1f;
+      border-left: 4px solid #ce9178;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+    }
+    .success {
+      background: #1f3e2f;
+      border-left: 4px solid #4ec9b0;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+    }
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .comparison .column {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .old-version {
+      border: 2px solid #f48771;
+    }
+    .new-version {
+      border: 2px solid #4ec9b0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #3e3e42;
+    }
+    th {
+      background: #2d2d30;
+      color: #569cd6;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background: #252526;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📚 多标签页功能改进版详解（第二版）</h1>
+
+<div class="success">
+  <strong>✨ 文档说明</strong>
+  <p>本文档详细讲解 commit 91a5060 中对多标签页系统的UI/UX改进。重点是内联重命名和保存按钮重新定位。</p>
+  <p><strong>前置文档：</strong>请先阅读第一版文档了解基础实现，本文档只讲解改进部分。</p>
+</div>
+
+<h2>🎯 改进目标</h2>
+
+<div class="section">
+  <h3>第一版的问题：</h3>
+  <ul>
+    <li>❌ 文件名输入框在最右侧，远离标签</li>
+    <li>❌ 保存按钮也在最右侧，不够明显</li>
+    <li>❌ 重命名需要在输入框操作，与标签分离</li>
+    <li>❌ 用户需要在标签和输入框之间切换视线</li>
+    <li>❌ 认知负担较重</li>
+  </ul>
+
+  <h3>第二版的改进：</h3>
+  <ul>
+    <li>✅ 双击标签名直接内联编辑（inline editing）</li>
+    <li>✅ 移除独立的文件名输入框</li>
+    <li>✅ 保存按钮移到标签旁边（左侧）</li>
+    <li>✅ 保存按钮使用绿色，更显眼</li>
+    <li>✅ 所有标签相关操作集中在一起</li>
+    <li>✅ 更符合现代IDE的交互模式（VS Code, Chrome等）</li>
+  </ul>
+</div>
+
+<h2>📊 UI 对比</h2>
+
+<div class="comparison">
+  <div class="column old-version">
+    <h3 style="color: #f48771;">❌ 第一版布局</h3>
+    <pre><code>[Tab1] [Tab2] [Tab3] [+]  <-->  [filename.c] [💾 Save]
+  标签区域                              右侧控件区
+（用户要在两个区域之间切换视线）</code></pre>
+  </div>
+  <div class="column new-version">
+    <h3 style="color: #4ec9b0;">✅ 第二版布局</h3>
+    <pre><code>[Tab1] [Tab2] [Tab3] [+] [💾 Save]
+  所有标签相关操作集中在一起
+（双击标签名直接重命名）</code></pre>
+  </div>
+</div>
+
+<h2>💻 代码改进详解</h2>
+
+<h3>改进 1：移除文件名输入框</h3>
+
+<div class="section">
+  <h4>删除的 CSS：</h4>
+  <pre><code>// 删除：
+.save-controls {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-left: auto;  // 这会把控件推到最右边
+}
+.filename-input { ... }  // 整个输入框样式
+.filename-input:focus { ... }</code></pre>
+
+  <h4>删除的 HTML：</h4>
+  <pre><code>&lt;!-- 删除： --&gt;
+&lt;div class="save-controls"&gt;
+  &lt;input type="text" class="filename-input" id="filenameInput"
+         placeholder="filename.c" value="main.c"&gt;
+  &lt;button id="saveBtn" disabled&gt;💾 Save&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+
+  <h4>删除的 JavaScript：</h4>
+  <pre><code>// 删除整个 change 事件监听器：
+document.getElementById('filenameInput').addEventListener('change', (e) => {
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  if (currentTab) {
+    currentTab.name = e.target.value || 'untitled.c';
+    renderTabs();
+  }
+});
+
+// 删除 updateFilenameInput() 函数：
+function updateFilenameInput() {
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  if (currentTab) {
+    document.getElementById('filenameInput').value = currentTab.name;
+  }
+}</code></pre>
+
+  <p><strong>删除原因：</strong> 功能被内联重命名取代，不再需要单独的输入框</p>
+</div>
+
+<h3>改进 2：保存按钮重新定位</h3>
+
+<div class="section">
+  <h4>新增 CSS：</h4>
+  <pre><code>.save-btn {
+  margin-left: 0.5rem;        // 与 + 按钮的间距
+  padding: 0.4rem 0.9rem;
+  background: #166534;         // 深绿色
+  border-color: #15803d;       // 绿色边框
+}
+.save-btn:hover { background: #15803d; }  // 悬停时变亮
+.save-btn:disabled {
+  background: #1f2937;         // 禁用时灰色
+  border-color: #334155;
+}</code></pre>
+
+  <h4>颜色选择说明：</h4>
+  <table>
+    <tr>
+      <th>状态</th>
+      <th>颜色</th>
+      <th>色值</th>
+      <th>含义</th>
+    </tr>
+    <tr>
+      <td>正常</td>
+      <td style="background: #166534; color: white;">深绿色</td>
+      <td>#166534</td>
+      <td>保存是安全操作，使用绿色</td>
+    </tr>
+    <tr>
+      <td>悬停</td>
+      <td style="background: #15803d; color: white;">亮绿色</td>
+      <td>#15803d</td>
+      <td>提供视觉反馈</td>
+    </tr>
+    <tr>
+      <td>禁用</td>
+      <td style="background: #1f2937; color: white;">深灰色</td>
+      <td>#1f2937</td>
+      <td>不可用状态</td>
+    </tr>
+  </table>
+
+  <h4>修改的 HTML：</h4>
+  <pre><code>&lt;div class="tabs-container"&gt;
+  &lt;!-- 标签会动态渲染到这里 --&gt;
+  &lt;button class="tab-add" onclick="addNewTab()"&gt;+&lt;/button&gt;
+  &lt;button class="save-btn" id="saveBtn" disabled&gt;💾 Save&lt;/button&gt;  &lt;!-- 移到这里！ --&gt;
+&lt;/div&gt;</code></pre>
+
+  <p><strong>位置变化：</strong></p>
+  <ul>
+    <li><strong>之前：</strong> 在 <code>.save-controls</code> div 里，通过 <code>margin-left: auto</code> 推到最右边</li>
+    <li><strong>现在：</strong> 直接放在标签容器里，紧跟在 <code>+</code> 按钮后面</li>
+    <li><strong>效果：</strong> 保存按钮与标签在同一视觉区域，操作更集中</li>
+  </ul>
+</div>
+
+<h3>改进 3：内联重命名功能</h3>
+
+<div class="section">
+  <h4>新增全局变量：</h4>
+  <pre><code>let editingTabId = null;  // 跟踪当前正在编辑的标签ID</code></pre>
+  <ul>
+    <li><code>null</code> 表示没有标签在编辑状态</li>
+    <li>数字表示正在编辑的标签ID</li>
+  </ul>
+
+  <h4>新增 CSS：</h4>
+  <pre><code>.tab-name-input {
+  background: #111827;           // 深色背景
+  border: 1px solid #3b82f6;    // 蓝色边框（焦点状态）
+  border-radius: 3px;
+  color: #e5e7eb;
+  padding: 2px 4px;
+  font-size: 0.85rem;
+  font-family: inherit;          // 继承标签字体
+  width: 120px;
+}
+.tab-name-input:focus {
+  outline: none;                 // 移除默认外框
+}</code></pre>
+</div>
+
+<h3>改进 4：修改 renderTabs() 函数</h3>
+
+<div class="section">
+  <h4>关键改动：</h4>
+  <pre><code>function renderTabs() {
+  const container = document.querySelector('.tabs-container');
+  const addButton = container.querySelector('.tab-add');
+  const saveButton = container.querySelector('.save-btn');  // ← 新增：获取保存按钮引用
+
+  // 删除所有标签（但保留 + 按钮和保存按钮）
+  const tabElements = container.querySelectorAll('.tab');
+  tabElements.forEach(el => el.remove());
+
+  // 为每个标签创建 DOM 元素
+  tabs.forEach(tab => {
+    const tabEl = document.createElement('div');
+    tabEl.className = 'tab' + (tab.id === currentTabId ? ' active' : '');
+    tabEl.dataset.tabId = tab.id;
+
+    // ← 关键改动：根据是否在编辑状态渲染不同内容
+    if (tab.id === editingTabId) {
+      // 编辑模式：显示输入框
+      tabEl.innerHTML = `
+        &lt;input type="text" class="tab-name-input" value="${tab.name}"
+               onblur="finishRenaming(${tab.id})"
+               onkeydown="handleRenameKeydown(event, ${tab.id})"
+               id="rename-input-${tab.id}"&gt;
+        &lt;span class="tab-close" onclick="closeTab(${tab.id}, event)"&gt;×&lt;/span&gt;
+      `;
+    } else {
+      // 正常模式：显示标签名，双击可编辑
+      tabEl.innerHTML = `
+        &lt;span class="tab-name" ondblclick="startRenaming(${tab.id}, event)"&gt;${tab.name}&lt;/span&gt;
+        &lt;span class="tab-close" onclick="closeTab(${tab.id}, event)"&gt;×&lt;/span&gt;
+      `;
+    }
+
+    // 点击标签切换（但不包括输入框和关闭按钮）
+    tabEl.onclick = (e) => {
+      if (!e.target.classList.contains('tab-close') &&
+          !e.target.classList.contains('tab-name-input')) {  // ← 新增条件
+        switchTab(tab.id);
+      }
+    };
+    container.insertBefore(tabEl, addButton);
+  });
+
+  // ← 新增：自动聚焦到重命名输入框
+  if (editingTabId !== null) {
+    setTimeout(() => {
+      const input = document.getElementById(`rename-input-${editingTabId}`);
+      if (input) {
+        input.focus();    // 聚焦
+        input.select();   // 全选文本，方便用户直接输入
+      }
+    }, 0);  // 使用 setTimeout 确保 DOM 更新后再聚焦
+  }
+}</code></pre>
+
+  <h4>详细解释：</h4>
+
+  <p><strong>1. 条件渲染（第 12-25 行）</strong></p>
+  <ul>
+    <li><code>if (tab.id === editingTabId)</code> - 检查当前标签是否处于编辑状态</li>
+    <li><strong>编辑模式：</strong>
+      <ul>
+        <li>渲染 <code>&lt;input&gt;</code> 元素代替 <code>&lt;span&gt;</code></li>
+        <li><code>value="${tab.name}"</code> - 预填充当前文件名</li>
+        <li><code>onblur="finishRenaming(...)"</code> - 失去焦点时完成重命名</li>
+        <li><code>onkeydown="handleRenameKeydown(...)"</code> - 处理键盘事件</li>
+        <li><code>id="rename-input-${tab.id}"</code> - 唯一ID，用于后续聚焦</li>
+      </ul>
+    </li>
+    <li><strong>正常模式：</strong>
+      <ul>
+        <li>渲染 <code>&lt;span&gt;</code> 显示文件名</li>
+        <li><code>ondblclick="startRenaming(...)"</code> - 双击进入编辑模式</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>2. 点击事件过滤（第 29 行）</strong></p>
+  <ul>
+    <li><code>!e.target.classList.contains('tab-name-input')</code> - 新增条件</li>
+    <li><strong>原因：</strong> 点击输入框时不应该切换标签
+      <ul>
+        <li>用户可能想点击输入框移动光标</li>
+        <li>如果触发切换，会中断编辑</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>3. 自动聚焦（第 37-44 行）</strong></p>
+  <ul>
+    <li><code>setTimeout(..., 0)</code> - 延迟到下一个事件循环
+      <ul>
+        <li><strong>为什么需要？</strong> 确保 DOM 已经更新完成</li>
+        <li>否则 <code>getElementById()</code> 可能找不到元素</li>
+      </ul>
+    </li>
+    <li><code>input.focus()</code> - 聚焦到输入框</li>
+    <li><code>input.select()</code> - 全选文本
+      <ul>
+        <li><strong>用户体验：</strong> 用户可以直接输入，无需手动选中</li>
+        <li>类似 Windows 文件重命名的行为</li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<h3>改进 5：新增 startRenaming() 函数</h3>
+
+<div class="section">
+  <pre><code>function startRenaming(tabId, event) {
+  event.stopPropagation();  // 阻止事件冒泡
+  editingTabId = tabId;     // 设置编辑状态
+  renderTabs();             // 重新渲染，显示输入框
+}</code></pre>
+
+  <h4>调用时机：</h4>
+  <ul>
+    <li>用户双击标签名时：<code>&lt;span ... ondblclick="startRenaming(...)"&gt;</code></li>
+  </ul>
+
+  <h4>工作流程：</h4>
+  <ol>
+    <li><code>stopPropagation()</code> - 阻止双击事件冒泡到标签 div
+      <ul>
+        <li>如果不阻止，可能会触发标签的 onclick（切换标签）</li>
+      </ul>
+    </li>
+    <li><code>editingTabId = tabId</code> - 标记该标签为编辑状态</li>
+    <li><code>renderTabs()</code> - 重新渲染
+      <ul>
+        <li>该标签会渲染为输入框</li>
+        <li>自动聚焦并全选文本</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<h3>改进 6：新增 finishRenaming() 函数</h3>
+
+<div class="section">
+  <pre><code>function finishRenaming(tabId) {
+  const input = document.getElementById(`rename-input-${tabId}`);
+  if (input) {
+    const newName = input.value.trim();  // 去除首尾空格
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab && newName) {  // 确保新名称不为空
+      tab.name = newName;  // 更新标签名称
+    }
+  }
+  editingTabId = null;  // 退出编辑状态
+  renderTabs();         // 重新渲染，显示正常标签
+}</code></pre>
+
+  <h4>调用时机：</h4>
+  <ul>
+    <li>输入框失去焦点时：<code>&lt;input ... onblur="finishRenaming(...)"&gt;</code></li>
+    <li>用户按 Enter 键时（通过 <code>handleRenameKeydown()</code> 调用）</li>
+  </ul>
+
+  <h4>工作流程：</h4>
+  <ol>
+    <li>获取输入框元素</li>
+    <li><code>trim()</code> - 去除首尾空格
+      <ul>
+        <li>防止用户意外输入空格</li>
+        <li>例如：<code>"  test.c  "</code> → <code>"test.c"</code></li>
+      </ul>
+    </li>
+    <li>查找对应的标签对象</li>
+    <li><code>if (tab && newName)</code> - 双重检查
+      <ul>
+        <li>标签存在</li>
+        <li>新名称不为空（<code>trim()</code> 后可能为空）</li>
+      </ul>
+    </li>
+    <li>更新标签名称</li>
+    <li><code>editingTabId = null</code> - 清除编辑状态</li>
+    <li>重新渲染，输入框变回标签名</li>
+  </ol>
+</div>
+
+<h3>改进 7：新增 handleRenameKeydown() 函数</h3>
+
+<div class="section">
+  <pre><code>function handleRenameKeydown(event, tabId) {
+  if (event.key === 'Enter') {
+    event.preventDefault();    // 阻止默认行为（防止表单提交）
+    finishRenaming(tabId);     // 完成重命名
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    editingTabId = null;       // 取消编辑
+    renderTabs();              // 恢复原名称
+  }
+}</code></pre>
+
+  <h4>键盘快捷键：</h4>
+  <table>
+    <tr>
+      <th>按键</th>
+      <th>行为</th>
+      <th>说明</th>
+    </tr>
+    <tr>
+      <td><code>Enter</code></td>
+      <td>确认重命名</td>
+      <td>保存新名称，退出编辑</td>
+    </tr>
+    <tr>
+      <td><code>Escape</code></td>
+      <td>取消重命名</td>
+      <td>放弃修改，恢复原名称</td>
+    </tr>
+  </table>
+
+  <h4>详细说明：</h4>
+  <ul>
+    <li><strong>Enter 键：</strong>
+      <ul>
+        <li><code>event.preventDefault()</code> - 阻止默认行为
+          <ul>
+            <li>在某些浏览器中，按 Enter 可能触发表单提交</li>
+            <li>虽然我们没有 form 元素，但保险起见还是阻止</li>
+          </ul>
+        </li>
+        <li>调用 <code>finishRenaming()</code> 保存新名称</li>
+      </ul>
+    </li>
+    <li><strong>Escape 键：</strong>
+      <ul>
+        <li>直接设置 <code>editingTabId = null</code>，不保存修改</li>
+        <li>重新渲染，输入框消失，显示原来的标签名</li>
+        <li><strong>用户体验：</strong> 提供"后悔"的机会</li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<h3>改进 8：修改保存按钮逻辑</h3>
+
+<div class="section">
+  <h4>修改前（第一版）：</h4>
+  <pre><code>const filename = document.getElementById('filenameInput').value || 'untitled.c';
+// 从输入框获取文件名</code></pre>
+
+  <h4>修改后（第二版）：</h4>
+  <pre><code>const currentTab = tabs.find(t => t.id === currentTabId);
+const filename = currentTab.name;  // 直接从标签对象获取
+// 不再需要输入框</code></pre>
+
+  <h4>优点：</h4>
+  <ul>
+    <li>数据源统一：文件名只存储在 <code>tabs</code> 数组中</li>
+    <li>减少同步问题：不需要在输入框和标签之间同步</li>
+    <li>代码更简洁</li>
+  </ul>
+</div>
+
+<h2>🎨 用户体验提升</h2>
+
+<h3>操作流程对比</h3>
+
+<div class="comparison">
+  <div class="column old-version">
+    <h3 style="color: #f48771;">❌ 第一版流程</h3>
+    <ol>
+      <li>点击标签（切换）</li>
+      <li>视线移到右侧</li>
+      <li>点击文件名输入框</li>
+      <li>修改文件名</li>
+      <li>按 Enter 或失焦</li>
+      <li>视线移回左侧查看标签</li>
+      <li>视线再移到右侧</li>
+      <li>点击保存按钮</li>
+    </ol>
+    <p><strong>问题：</strong>视线需要在左右两侧来回移动3次</p>
+  </div>
+  <div class="column new-version">
+    <h3 style="color: #4ec9b0;">✅ 第二版流程</h3>
+    <ol>
+      <li>点击标签（切换）</li>
+      <li>双击标签名（重命名）</li>
+      <li>输入新名称</li>
+      <li>按 Enter 确认</li>
+      <li>点击旁边的保存按钮</li>
+    </ol>
+    <p><strong>优势：</strong>所有操作都在同一视觉区域完成</p>
+  </div>
+</div>
+
+<h3>符合用户习惯</h3>
+
+<table>
+  <tr>
+    <th>软件/系统</th>
+    <th>重命名方式</th>
+  </tr>
+  <tr>
+    <td>Windows 文件管理器</td>
+    <td>点击文件名 → F2 键或再次点击 → 内联编辑</td>
+  </tr>
+  <tr>
+    <td>macOS Finder</td>
+    <td>点击文件名 → Enter 键 → 内联编辑</td>
+  </tr>
+  <tr>
+    <td>VS Code</td>
+    <td>右键标签 → Rename / F2 → 内联编辑</td>
+  </tr>
+  <tr>
+    <td>Chrome 书签</td>
+    <td>右键书签 → Edit → 内联编辑</td>
+  </tr>
+  <tr>
+    <td><strong>CCompiler v2</strong></td>
+    <td><strong>双击标签名 → 内联编辑</strong></td>
+  </tr>
+</table>
+
+<p><strong>结论：</strong>内联编辑是现代软件的标准交互模式，用户无需学习即可使用。</p>
+
+<h2>🔧 技术要点总结</h2>
+
+<h3>1. 内联编辑的实现原理</h3>
+
+<div class="section">
+  <ol>
+    <li><strong>状态管理</strong>
+      <ul>
+        <li>使用 <code>editingTabId</code> 全局变量跟踪编辑状态</li>
+        <li><code>null</code> 表示无编辑，数字表示正在编辑的标签ID</li>
+      </ul>
+    </li>
+    <li><strong>条件渲染</strong>
+      <ul>
+        <li>根据 <code>editingTabId</code> 渲染不同的 DOM 结构</li>
+        <li>编辑时：<code>&lt;input&gt;</code></li>
+        <li>正常时：<code>&lt;span&gt;</code></li>
+      </ul>
+    </li>
+    <li><strong>事件驱动</strong>
+      <ul>
+        <li>双击 → 进入编辑模式</li>
+        <li>失焦/Enter → 保存并退出</li>
+        <li>Escape → 取消并退出</li>
+      </ul>
+    </li>
+    <li><strong>自动聚焦</strong>
+      <ul>
+        <li>使用 <code>setTimeout(..., 0)</code> 延迟聚焦</li>
+        <li>确保 DOM 更新完成</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<h3>2. 事件处理的细节</h3>
+
+<div class="section">
+  <table>
+    <tr>
+      <th>事件</th>
+      <th>处理方法</th>
+      <th>原因</th>
+    </tr>
+    <tr>
+      <td>双击标签名</td>
+      <td><code>stopPropagation()</code></td>
+      <td>防止触发标签的 click 事件</td>
+    </tr>
+    <tr>
+      <td>点击输入框</td>
+      <td>过滤点击事件</td>
+      <td>防止切换标签，中断编辑</td>
+    </tr>
+    <tr>
+      <td>按 Enter</td>
+      <td><code>preventDefault()</code></td>
+      <td>防止默认行为（表单提交）</td>
+    </tr>
+    <tr>
+      <td>失去焦点</td>
+      <td>保存并退出</td>
+      <td>用户点击其他地方视为确认</td>
+    </tr>
+  </table>
+</div>
+
+<h3>3. CSS 的作用</h3>
+
+<div class="section">
+  <ul>
+    <li><strong>移除 <code>margin-left: auto</code></strong>
+      <ul>
+        <li>不再需要将元素推到右侧</li>
+        <li>所有元素按自然顺序排列</li>
+      </ul>
+    </li>
+    <li><strong>保存按钮颜色</strong>
+      <ul>
+        <li>绿色：视觉上更显眼，表示"安全操作"</li>
+        <li>悬停变亮：提供视觉反馈</li>
+      </ul>
+    </li>
+    <li><strong>输入框样式</strong>
+      <ul>
+        <li>蓝色边框：明确表示"可编辑"状态</li>
+        <li><code>font-family: inherit</code>：与标签字体一致</li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<h2>📊 代码变更统计</h2>
+
+<table>
+  <tr>
+    <th>文件</th>
+    <th>新增行数</th>
+    <th>删除行数</th>
+    <th>净变化</th>
+  </tr>
+  <tr>
+    <td>CCompiler.html (CSS)</td>
+    <td>+15</td>
+    <td>-25</td>
+    <td>-10</td>
+  </tr>
+  <tr>
+    <td>CCompiler.html (HTML)</td>
+    <td>+2</td>
+    <td>-6</td>
+    <td>-4</td>
+  </tr>
+  <tr>
+    <td>CCompiler.html (JS)</td>
+    <td>+45</td>
+    <td>-15</td>
+    <td>+30</td>
+  </tr>
+  <tr>
+    <td><strong>总计</strong></td>
+    <td><strong>+62</strong></td>
+    <td><strong>-46</strong></td>
+    <td><strong>+16</strong></td>
+  </tr>
+</table>
+
+<p><strong>分析：</strong></p>
+<ul>
+  <li>CSS 减少10行：移除了文件名输入框相关样式</li>
+  <li>HTML 减少4行：移除了输入框元素</li>
+  <li>JS 增加30行：添加了内联编辑逻辑</li>
+  <li><strong>净增加仅16行</strong>，但用户体验显著提升</li>
+</ul>
+
+<h2>✨ 总结</h2>
+
+<div class="success">
+  <h3>第二版的优势：</h3>
+  <ul>
+    <li>✅ <strong>UI 更简洁</strong> - 移除了不必要的输入框</li>
+    <li>✅ <strong>操作更直观</strong> - 双击即可重命名，符合用户习惯</li>
+    <li>✅ <strong>视觉集中</strong> - 所有标签操作在同一区域</li>
+    <li>✅ <strong>认知负担低</strong> - 无需在不同UI元素间切换</li>
+    <li>✅ <strong>保存按钮显眼</strong> - 绿色按钮更容易发现</li>
+    <li>✅ <strong>键盘友好</strong> - Enter 确认，Escape 取消</li>
+  </ul>
+
+  <h3>关键技术：</h3>
+  <ul>
+    <li>🔹 条件渲染（根据状态渲染不同内容）</li>
+    <li>🔹 事件冒泡控制（<code>stopPropagation</code>）</li>
+    <li>🔹 自动聚焦（<code>setTimeout + focus + select</code>）</li>
+    <li>🔹 键盘事件处理（Enter, Escape）</li>
+    <li>🔹 CSS Flexbox 布局（自然排列）</li>
+  </ul>
+
+  <h3>代码质量：</h3>
+  <ul>
+    <li>✅ 减少了重复代码（不需要同步输入框和标签名）</li>
+    <li>✅ 数据源统一（文件名只在 <code>tabs</code> 数组中）</li>
+    <li>✅ 降低复杂度（移除了 <code>updateFilenameInput</code> 函数）</li>
+    <li>✅ 更容易维护（逻辑更清晰）</li>
+  </ul>
+</div>
+
+<div class="important">
+  <h3>学习要点：</h3>
+  <p>通过这个改进案例，我们学到：</p>
+  <ul>
+    <li><strong>1. 好的 UI 设计能减少代码</strong> - 第二版反而更简单</li>
+    <li><strong>2. 用户习惯很重要</strong> - 遵循现有软件的交互模式</li>
+    <li><strong>3. 集中相关操作</strong> - 降低用户的认知负担</li>
+    <li><strong>4. 细节决定体验</strong> - 自动聚焦、全选文本等小细节很重要</li>
+  </ul>
+</div>
+
+</body>
+</html>
