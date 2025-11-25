@@ -303,27 +303,48 @@ async function runWasmProgram(wasmBytes) {
     // 查看模块需要哪些 imports
     const imports = WebAssembly.Module.imports(module);
 
-    // 构建 importObject
+    // Build import object
     const importObject = {
       wasi_snapshot_preview1: wasi.wasiImport,
-      wasix_32v1: wasi.wasiImport,  // 映射到同一个
+      wasix_32v1: {},  // Initialize wasix_32v1 first
       env: {},
     };
 
-    // 维持你原来的 env stub 逻辑
+    // Provide imports based on what the module needs
     for (const imp of imports) {
       if (imp.module === "env") {
         if (imp.name === "memory" && imp.kind === "memory") {
+          // Create and provide shared memory (required by Wasmer)
           importObject.env.memory = new WebAssembly.Memory({
             initial: 256,
             maximum: 256,
-            shared: true,
+            shared: true
           });
         } else if (imp.kind === "function") {
+          // Provide stub function for any env functions
           importObject.env[imp.name] = (...args) => {
             console.warn(`Called stub function: env.${imp.name}`, args);
             return 0;
           };
+        }
+      } else if (imp.module === "wasix_32v1") {
+        if (imp.kind === "function") {
+          // Check if WASI provides this function, otherwise create stub
+          if (wasi.wasiImport[imp.name]) {
+            importObject.wasix_32v1[imp.name] = wasi.wasiImport[imp.name];
+          } else {
+            // Provide stub function for WASIX-specific functions
+            importObject.wasix_32v1[imp.name] = (...args) => {
+              console.warn(`Called stub function: wasix_32v1.${imp.name}`, args);
+              return 0;
+            };
+          }
+        } else if (imp.kind === "global") {
+          // Provide stub global for WASIX-specific globals
+          importObject.wasix_32v1[imp.name] = new WebAssembly.Global(
+            { value: 'i32', mutable: true },
+            0
+          );
         }
       }
     }
