@@ -15,9 +15,9 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
-        # Serve CCompiler.html as index
+        # Default to index.html if accessing root
         if self.path == '/':
-            self.path = '/CCompiler.html'
+            self.path = '/index.html'
         return super().do_GET()
 
 if __name__ == '__main__':
