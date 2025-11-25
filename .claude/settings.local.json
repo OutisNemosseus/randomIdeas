@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo list:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix Monaco Editor loading error in PyodideIDePandas.html\n\n- Added MonacoEnvironment configuration to properly handle web workers\n- Added error handling for module loading failures\n- Fixed \"K.default.parse is not a function\" error caused by missing stackframe module\n- Configured proper worker URLs for different language services\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nUpdate Pyodide to v0.26.4 to fix stackframe.js loading error\n\n- Upgraded from v0.26.1 to v0.26.4\n- Fixes TypeError: K.default.parse is not a function\n- Resolves 404 error for stackframe.js dependency\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(python serve-ccompiler.py:*)",
+      "Bash(timeout 2 bash:*)",
+      "Bash(findstr:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Capacitor Simulator (Pyodide)</title>
+
+  <!-- MathJax config + script -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script
+    id="MathJax-script"
+    defer
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+  </script>
+
+  <!-- highlight.js for Python code highlighting -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+  />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    h2 {
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .param-row {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .slider-container {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .slider-label-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .play-btn {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .play-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    #controls-bottom {
+      margin-top: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    #plot {
+      max-width: 100%;
+      border: 1px solid #ddd;
+      margin-top: 1rem;
+    }
+    #status {
+      margin-top: 0.3rem;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    #text-output {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      background: #f9fafb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+    }
+    #manual-inputs {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #e5e7eb;
+      background: #fefefe;
+      font-size: 0.9rem;
+    }
+    #manual-inputs-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem 1.5rem;
+      margin-top: 0.5rem;
+      align-items: flex-end;
+    }
+    .manual-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .manual-input-group input[type="number"] {
+      width: 120px;
+      padding: 0.2rem 0.4rem;
+      font-size: 0.9rem;
+    }
+    #apply-inputs-btn {
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    #code-section {
+      margin-top: 2rem;
+      border-top: 1px solid #ddd;
+      padding-top: 1rem;
+    }
+    #py-code {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    #copy-btn {
+      margin-bottom: 0.5rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    #latex-section, #example-section {
+      margin-top: 2rem;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Capacitor Simulator (Pyodide)</h1>
+  <p>
+    交互式平行板电容模拟：拖动参数或手动输入，实时查看等效电容与能量变化。
+    使用公式 \(C = \varepsilon_0\,k\,A/d\) 和 \(E = \tfrac{1}{2} C V^2\)。
+  </p>
+
+  <!-- Voltage -->
+  <div class="param-row">
+    <button class="play-btn" id="play-V" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>Voltage \(V\) (volts)</span>
+        <span id="V-value">5.0</span>
+      </div>
+      <input id="V" type="range" min="0" max="20" step="0.5" value="5" />
+    </div>
+  </div>
+
+  <!-- Area -->
+  <div class="param-row">
+    <button class="play-btn" id="play-A" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>Area \(A\) (m²)</span>
+        <span id="A-value">1.0</span>
+      </div>
+      <input id="A" type="range" min="0.1" max="2.0" step="0.1" value="1.0" />
+    </div>
+  </div>
+
+  <!-- Distance -->
+  <div class="param-row">
+    <button class="play-btn" id="play-d" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>Distance \(d\) (m)</span>
+        <span id="d-value">0.010</span>
+      </div>
+      <input id="d" type="range" min="0.001" max="0.02" step="0.001" value="0.01" />
+    </div>
+  </div>
+
+  <!-- Dielectric constant -->
+  <div class="param-row">
+    <button class="play-btn" id="play-k" disabled>▶</button>
+    <div class="slider-container">
+      <div class="slider-label-line">
+        <span>Dielectric constant \(k\)</span>
+        <span id="k-value">2.0</span>
+      </div>
+      <input id="k" type="range" min="1.0" max="10.0" step="0.5" value="2.0" />
+    </div>
+  </div>
+
+  <div id="controls-bottom">
+    <button id="run-btn" disabled>Generate Once</button>
+    <span id="status">Loading Pyodide…</span>
+  </div>
+
+  <!-- Manual input / auto calculation module -->
+  <section id="manual-inputs">
+    <strong>Manual Input Calculator</strong>
+    <p>在这里直接输入数值（会同步到上面的滑块，并重新计算）：</p>
+    <div id="manual-inputs-row">
+      <div class="manual-input-group">
+        <label for="V-input">Voltage \(V\) (V)</label>
+        <input id="V-input" type="number" step="0.5" value="5.0" />
+      </div>
+      <div class="manual-input-group">
+        <label for="A-input">Area \(A\) (m²)</label>
+        <input id="A-input" type="number" step="0.1" value="1.0" />
+      </div>
+      <div class="manual-input-group">
+        <label for="d-input">Distance \(d\) (m)</label>
+        <input id="d-input" type="number" step="0.001" value="0.01" />
+      </div>
+      <div class="manual-input-group">
+        <label for="k-input">Dielectric constant \(k\)</label>
+        <input id="k-input" type="number" step="0.5" value="2.0" />
+      </div>
+      <button id="apply-inputs-btn">Apply Inputs</button>
+    </div>
+  </section>
+
+  <div id="text-output"></div>
+  <img id="plot" alt="Capacitor figure will appear here" />
+
+  <!-- LaTeX section -->
+  <section id="latex-section">
+    <h2>Formulas</h2>
+    <p>等效电容：</p>
+    <ul>
+      <li>并联：
+        \[
+        C_{\text{eq}}^{(\text{parallel})} = \sum_i C_i
+        \]
+      </li>
+      <li>串联：
+        \[
+        \frac{1}{C_{\text{eq}}^{(\text{series})}} = \sum_i \frac{1}{C_i}
+        \]
+      </li>
+    </ul>
+
+    <p>平行板电容：</p>
+    <ul>
+      <li>空气/真空：
+        \[
+        C = \varepsilon_0 \frac{A}{d}
+        \]
+      </li>
+      <li>有介质：
+        \[
+        C' = k C = k \varepsilon_0 \frac{A}{d}
+        \]
+      </li>
+    </ul>
+
+    <p>储能：</p>
+    <ul>
+      <li>
+        \[
+        E = \tfrac{1}{2} C V^2
+        \]
+      </li>
+    </ul>
+
+    <p>圆柱电容（同轴）：</p>
+    <p>
+      \[
+      C_{\text{cyl}} = \frac{2\pi \varepsilon_0 L}{\ln\left(\dfrac{b}{a}\right)}
+      \]
+    </p>
+
+    <p>球形电容：</p>
+    <p>
+      \[
+      C_{\text{sph}} = \frac{4\pi \varepsilon_0}{\dfrac{1}{a} - \dfrac{1}{b}}
+      \]
+    </p>
+  </section>
+
+  <!-- Example section -->
+  <section id="example-section">
+    <h2>Example</h2>
+    <p>
+      已知平行板电容器参数：
+    </p>
+    <ul>
+      <li>电压：\(V = 5\,\text{V}\)</li>
+      <li>板面积：\(A = 1.0\,\text{m}^2\)</li>
+      <li>板间距：\(d = 0.01\,\text{m}\)</li>
+      <li>介电常数：\(k = 2.0\)</li>
+    </ul>
+
+    <p>1. 先计算真空下平行板电容：</p>
+    <p>
+      \[
+        C = \varepsilon_0 \frac{A}{d}
+        = 8.854\times 10^{-12} \cdot \frac{1.0}{0.01}
+        = 8.854\times 10^{-10}\,\text{F}
+      \]
+    </p>
+
+    <p>2. 加入介质后的电容：</p>
+    <p>
+      \[
+        C' = k C = 2.0 \times 8.854\times 10^{-10}
+        = 1.7708\times 10^{-9}\,\text{F}
+      \]
+    </p>
+
+    <p>3. 储能：</p>
+    <p>
+      \[
+        E = \tfrac{1}{2} C' V^2
+        = \tfrac{1}{2} \cdot 1.7708\times 10^{-9} \cdot 5^2
+        \approx 2.2135\times 10^{-8}\,\text{J}
+      \]
+    </p>
+
+    <p>
+      你可以在上方手动输入这些参数或拖动滑块，验证数值与图中的文字输出是否一致。
+    </p>
+  </section>
+
+  <!-- Python 代码展示 + 复制 -->
+  <section id="code-section">
+    <h2>Python 代码（NumPy + Matplotlib）</h2>
+    <button id="copy-btn">复制 Python 代码</button>
+    <pre><code id="py-code" class="language-python"></code></pre>
+  </section>
+
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+  <script>
+    let pyodide = null;
+    let isReady = false;
+
+    const statusEl = document.getElementById("status");
+    const plotEl = document.getElementById("plot");
+    const runBtn = document.getElementById("run-btn");
+    const textOutputEl = document.getElementById("text-output");
+
+    const sliders = {
+      V: document.getElementById("V"),
+      A: document.getElementById("A"),
+      d: document.getElementById("d"),
+      k: document.getElementById("k"),
+    };
+    const labels = {
+      V: document.getElementById("V-value"),
+      A: document.getElementById("A-value"),
+      d: document.getElementById("d-value"),
+      k: document.getElementById("k-value"),
+    };
+    const playButtons = {
+      V: document.getElementById("play-V"),
+      A: document.getElementById("play-A"),
+      d: document.getElementById("play-d"),
+      k: document.getElementById("play-k"),
+    };
+
+    // Manual inputs
+    const manualInputs = {
+      V: document.getElementById("V-input"),
+      A: document.getElementById("A-input"),
+      d: document.getElementById("d-input"),
+      k: document.getElementById("k-input"),
+    };
+    const applyInputsBtn = document.getElementById("apply-inputs-btn");
+
+    // Animation state for auto-play
+    const animState = {
+      V: { playing: false, dir: 1, timer: null },
+      A: { playing: false, dir: 1, timer: null },
+      d: { playing: false, dir: 1, timer: null },
+      k: { playing: false, dir: 1, timer: null },
+    };
+
+    // Python code string (for Pyodide and display)
+    const pythonCode = `
+import numpy as np
+import io, base64
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+EPS0 = 8.854187817e-12
+
+def calculate_parallel_capacitance(capacitances):
+    caps = np.asarray(capacitances, dtype=float)
+    return float(np.sum(caps))
+
+def calculate_series_capacitance(capacitances):
+    caps = np.asarray(capacitances, dtype=float)
+    inv_sum = np.sum(1.0 / caps)
+    return float(1.0 / inv_sum)
+
+def calculate_energy_stored_scalar(capacitance, voltage):
+    return 0.5 * float(capacitance) * float(voltage) ** 2
+
+def calculate_capacitance_with_dielectric(capacitance, dielectric_constant):
+    return float(capacitance) * float(dielectric_constant)
+
+def parallel_plate_capacitance_scalar(area, distance, eps0=EPS0):
+    return eps0 * float(area) / float(distance)
+
+def cylindrical_capacitance(length, inner_radius, outer_radius, eps0=EPS0):
+    L = float(length)
+    a = float(inner_radius)
+    b = float(outer_radius)
+    return float((2 * np.pi * eps0 * L) / np.log(b / a))
+
+def spherical_capacitance(inner_radius, outer_radius, eps0=EPS0):
+    a = float(inner_radius)
+    b = float(outer_radius)
+    return float((4 * np.pi * eps0) / ((1.0 / a) - (1.0 / b)))
+
+def generate_capacitor_figure(voltage, area, distance, k, eps0=EPS0):
+    # Example caps for series / parallel
+    series_caps   = [1e-6, 2e-6, 3e-6]
+    parallel_caps = [1e-6, 2e-6, 3e-6]
+
+    c_series   = calculate_series_capacitance(series_caps)
+    c_parallel = calculate_parallel_capacitance(parallel_caps)
+    c_pp       = parallel_plate_capacitance_scalar(area, distance, eps0)
+    energy     = calculate_energy_stored_scalar(c_pp, voltage)
+    c_pp_k     = calculate_capacitance_with_dielectric(c_pp, k)
+    c_cyl      = cylindrical_capacitance(1.0, 0.01, 0.02, eps0)
+    c_sph      = spherical_capacitance(0.01, 0.02, eps0)
+
+    # Text summary
+    text = (
+        f"Series Equivalent Capacitance: {c_series} F\\n"
+        f"Parallel Equivalent Capacitance: {c_parallel} F\\n"
+        f"Parallel-Plate Capacitance: {c_pp} F\\n"
+        f"Energy Stored in Capacitor: {energy} J (V = {voltage})\\n"
+        f"Capacitance with Dielectric (k={k}): {c_pp_k} F\\n"
+        f"Cylindrical Capacitance: {c_cyl} F\\n"
+        f"Spherical Capacitance: {c_sph} F"
+    )
+
+    fig = plt.figure(figsize=(8, 6))
+
+    # (1) C vs distance
+    distances = np.linspace(0.001, 0.02, 200)
+    c_vs_d = eps0 * area / distances
+    ax1 = fig.add_subplot(2, 2, 1)
+    ax1.plot(distances, c_vs_d)
+    ax1.set_title("Parallel-Plate C vs Distance")
+    ax1.set_xlabel("d (m)")
+    ax1.set_ylabel("C (F)")
+    ax1.grid(True)
+
+    # (2) Energy vs Voltage
+    V = np.linspace(0, 10, 200)
+    E_vs_V = 0.5 * c_pp * V**2
+    ax2 = fig.add_subplot(2, 2, 2)
+    ax2.plot(V, E_vs_V)
+    ax2.set_title("Energy vs Voltage")
+    ax2.set_xlabel("V (volts)")
+    ax2.set_ylabel("E (J)")
+    ax2.grid(True)
+
+    # (3) C vs k
+    k_vals = np.linspace(1, 10, 50)
+    C_with_k_curve = c_pp * k_vals
+    ax3 = fig.add_subplot(2, 2, 3)
+    ax3.plot(k_vals, C_with_k_curve)
+    ax3.set_title("Capacitance vs Dielectric Constant")
+    ax3.set_xlabel("k")
+    ax3.set_ylabel("C (F)")
+    ax3.grid(True)
+
+    # (4) Text block
+    ax4 = fig.add_subplot(2, 2, 4)
+    ax4.axis("off")
+    ax4.text(0.03, 0.5, text, fontsize=10, va="center")
+
+    buf = io.BytesIO()
+    fig.tight_layout()
+    fig.savefig(buf, format="png", dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    img_b64 = base64.b64encode(buf.read()).decode("ascii")
+    img_src = "data:image/png;base64," + img_b64
+
+    return text, img_src
+`;
+
+    // Show Python code + highlight
+    const codeBlock = document.getElementById("py-code");
+    if (codeBlock) {
+      codeBlock.textContent = pythonCode;
+      if (window.hljs) {
+        hljs.highlightElement(codeBlock);
+      }
+    }
+
+    // Copy Python code button
+    const copyBtn = document.getElementById("copy-btn");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(pythonCode);
+          const old = copyBtn.textContent;
+          copyBtn.textContent = "已复制 ✓";
+          setTimeout(() => (copyBtn.textContent = old), 1200);
+        } catch (e) {
+          alert("复制失败，可能浏览器不支持 clipboard API");
+        }
+      });
+    }
+
+    function updateLabels() {
+      const V = parseFloat(sliders.V.value);
+      const A = parseFloat(sliders.A.value);
+      const d = parseFloat(sliders.d.value);
+      const k = parseFloat(sliders.k.value);
+      labels.V.textContent = V.toFixed(1);
+      labels.A.textContent = A.toFixed(1);
+      labels.d.textContent = d.toFixed(3);
+      labels.k.textContent = k.toFixed(1);
+
+      // sync manual inputs
+      manualInputs.V.value = V.toFixed(1);
+      manualInputs.A.value = A.toFixed(1);
+      manualInputs.d.value = d.toFixed(3);
+      manualInputs.k.value = k.toFixed(1);
+    }
+
+    Object.keys(sliders).forEach((name) => {
+      sliders[name].addEventListener("input", () => {
+        updateLabels();
+        updatePlot();
+      });
+    });
+
+    // Manual "Apply Inputs" -> sync to sliders
+    applyInputsBtn.addEventListener("click", () => {
+      ["V", "A", "d", "k"].forEach((name) => {
+        const val = parseFloat(manualInputs[name].value);
+        if (!Number.isNaN(val)) {
+          const slider = sliders[name];
+          const min = parseFloat(slider.min);
+          const max = parseFloat(slider.max);
+          const clamped = Math.min(max, Math.max(min, val));
+          slider.value = clamped;
+        }
+      });
+      updateLabels();
+      updatePlot();
+    });
+
+    // Also apply on Enter key in inputs
+    Object.values(manualInputs).forEach((input) => {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          applyInputsBtn.click();
+        }
+      });
+    });
+
+    // Init Pyodide
+    async function initPyodideAndPython() {
+      try {
+        statusEl.textContent = "Loading Pyodide core…";
+        pyodide = await loadPyodide();
+
+        statusEl.textContent = "Loading numpy & matplotlib…";
+        await pyodide.loadPackage(["numpy", "matplotlib"]);
+
+        statusEl.textContent = "Initializing Python code…";
+        await pyodide.runPythonAsync(pythonCode);
+
+        isReady = true;
+        statusEl.textContent = "Ready. 调整滑块或输入数值即可更新。";
+        runBtn.disabled = false;
+        Object.values(playButtons).forEach((btn) => (btn.disabled = false));
+
+        updateLabels();
+        await updatePlot();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error initializing Pyodide: " + err;
+      }
+    }
+
+    // Update plot via Python
+    async function updatePlot() {
+      if (!isReady) return;
+      const V = parseFloat(sliders.V.value);
+      const A = parseFloat(sliders.A.value);
+      const d = parseFloat(sliders.d.value);
+      const k = parseFloat(sliders.k.value);
+
+      statusEl.textContent = `Rendering (V=${V}, A=${A}, d=${d}, k=${k}) …`;
+
+      try {
+        const code = `
+text, img = generate_capacitor_figure(voltage=${V}, area=${A}, distance=${d}, k=${k})
+(text, img)
+`;
+        const result = await pyodide.runPythonAsync(code);
+        const text = result[0];
+        const imgSrc = result[1];
+
+        textOutputEl.textContent = text;
+        plotEl.src = imgSrc;
+
+        statusEl.textContent = "Rendered.";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error updating plot: " + err;
+      }
+    }
+
+    runBtn.addEventListener("click", () => updatePlot());
+
+    // Auto-play logic
+    function toggleParamAnimation(name) {
+      if (!isReady) return;
+      const st = animState[name];
+      const slider = sliders[name];
+      const btn = playButtons[name];
+
+      if (st.playing) {
+        clearInterval(st.timer);
+        st.timer = null;
+        st.playing = false;
+        btn.textContent = "▶";
+        return;
+      }
+
+      st.playing = true;
+      st.dir = 1;
+      btn.textContent = "⏸";
+
+      const step = parseFloat(slider.step) || 0.5;
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+
+      st.timer = setInterval(() => {
+        let v = parseFloat(slider.value);
+        v += st.dir * step;
+        if (v > max) {
+          v = max;
+          st.dir = -1;
+        } else if (v < min) {
+          v = min;
+          st.dir = 1;
+        }
+        slider.value = v;
+        updateLabels();
+        updatePlot();
+      }, 700);
+    }
+
+    Object.keys(playButtons).forEach((name) => {
+      playButtons[name].addEventListener("click", () => toggleParamAnimation(name));
+    });
+
+    // Start Pyodide
+    initPyodideAndPython();
+
+    // Ensure MathJax typesets once everything is loaded
+    window.addEventListener("load", () => {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -28,7 +28,7 @@
 
     /* Tab system styles */
     .tabs-container {
-      display: flex; align-items: center; gap: 0.3rem;
+      display: flex; align-items: center; gap: 0.5rem;
       padding: 0.5rem 1rem;
       background: #0f172a;
       border-bottom: 1px solid #1f2937;
@@ -42,6 +42,7 @@
       cursor: pointer;
       border: 1px solid #334155;
       white-space: nowrap;
+      position: relative;
     }
     .tab:hover { background: #2d3748; }
     .tab.active {
@@ -50,10 +51,27 @@
     }
     .tab-name {
       font-size: 0.85rem;
-      min-width: 80px;
-      max-width: 150px;
+      min-width: 60px;
+      max-width: 120px;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .tab-name.editing {
+      min-width: 100px;
+      max-width: 200px;
+    }
+    .tab-name-input {
+      background: #111827;
+      border: 1px solid #3b82f6;
+      border-radius: 3px;
+      color: #e5e7eb;
+      padding: 2px 4px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      width: 120px;
+    }
+    .tab-name-input:focus {
+      outline: none;
     }
     .tab-close {
       color: #9ca3af;
@@ -76,23 +94,17 @@
     }
     .tab-add:hover { background: #475569; }
 
-    /* Save controls */
-    .save-controls {
-      display: flex; align-items: center; gap: 0.5rem;
-      margin-left: auto;
+    /* Save button near tabs */
+    .save-btn {
+      margin-left: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      background: #166534;
+      border-color: #15803d;
     }
-    .filename-input {
-      padding: 0.35rem 0.6rem;
+    .save-btn:hover { background: #15803d; }
+    .save-btn:disabled {
       background: #1f2937;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      color: #e5e7eb;
-      font-size: 0.85rem;
-      width: 180px;
-    }
-    .filename-input:focus {
-      outline: none;
-      border-color: #3b82f6;
+      border-color: #334155;
     }
 
     .main {
@@ -143,10 +155,7 @@
       <span class="tab-close" onclick="closeTab(0, event)">×</span>
     </div>
     <button class="tab-add" onclick="addNewTab()">+</button>
-    <div class="save-controls">
-      <input type="text" class="filename-input" id="filenameInput" placeholder="filename.c" value="main.c">
-      <button id="saveBtn" disabled>💾 Save</button>
-    </div>
+    <button class="save-btn" id="saveBtn" disabled>💾 Save</button>
   </div>
 
   <div class="main">
@@ -159,7 +168,7 @@
   </div>
 
   <footer>
-    Uses Wandbox online compiler API (gcc-head) • Multiple tabs • Auto-save to local folder
+    Wandbox API • Multi-tab editing • Double-click tab to rename • Auto-save to local folder
   </footer>
 
 <script>
@@ -182,13 +191,14 @@ int main() {
 let currentTabId = 0;
 let nextTabId = 1;
 let editor = null;
+let editingTabId = null;
 
 function renderTabs() {
   const container = document.querySelector('.tabs-container');
-  const saveControls = container.querySelector('.save-controls');
   const addButton = container.querySelector('.tab-add');
+  const saveButton = container.querySelector('.save-btn');
 
-  // Remove all tabs except add button and save controls
+  // Remove all tabs
   const tabElements = container.querySelectorAll('.tab');
   tabElements.forEach(el => el.remove());
 
@@ -197,19 +207,72 @@ function renderTabs() {
     const tabEl = document.createElement('div');
     tabEl.className = 'tab' + (tab.id === currentTabId ? ' active' : '');
     tabEl.dataset.tabId = tab.id;
-    tabEl.innerHTML = `
-      <span class="tab-name">${tab.name}</span>
-      <span class="tab-close" onclick="closeTab(${tab.id}, event)">×</span>
-    `;
+
+    // Check if this tab is being edited
+    if (tab.id === editingTabId) {
+      tabEl.innerHTML = `
+        <input type="text" class="tab-name-input" value="${tab.name}"
+               onblur="finishRenaming(${tab.id})"
+               onkeydown="handleRenameKeydown(event, ${tab.id})"
+               id="rename-input-${tab.id}">
+        <span class="tab-close" onclick="closeTab(${tab.id}, event)">×</span>
+      `;
+    } else {
+      tabEl.innerHTML = `
+        <span class="tab-name" ondblclick="startRenaming(${tab.id}, event)">${tab.name}</span>
+        <span class="tab-close" onclick="closeTab(${tab.id}, event)">×</span>
+      `;
+    }
+
     tabEl.onclick = (e) => {
-      if (!e.target.classList.contains('tab-close')) {
+      if (!e.target.classList.contains('tab-close') &&
+          !e.target.classList.contains('tab-name-input')) {
         switchTab(tab.id);
       }
     };
     container.insertBefore(tabEl, addButton);
   });
 
-  updateFilenameInput();
+  // Focus the rename input if editing
+  if (editingTabId !== null) {
+    setTimeout(() => {
+      const input = document.getElementById(`rename-input-${editingTabId}`);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 0);
+  }
+}
+
+function startRenaming(tabId, event) {
+  event.stopPropagation();
+  editingTabId = tabId;
+  renderTabs();
+}
+
+function finishRenaming(tabId) {
+  const input = document.getElementById(`rename-input-${tabId}`);
+  if (input) {
+    const newName = input.value.trim();
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab && newName) {
+      tab.name = newName;
+    }
+  }
+  editingTabId = null;
+  renderTabs();
+}
+
+function handleRenameKeydown(event, tabId) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    finishRenaming(tabId);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    editingTabId = null;
+    renderTabs();
+  }
 }
 
 function switchTab(tabId) {
@@ -270,22 +333,6 @@ function closeTab(tabId, event) {
   renderTabs();
 }
 
-function updateFilenameInput() {
-  const currentTab = tabs.find(t => t.id === currentTabId);
-  if (currentTab) {
-    document.getElementById('filenameInput').value = currentTab.name;
-  }
-}
-
-// Update tab name when filename changes
-document.getElementById('filenameInput').addEventListener('change', (e) => {
-  const currentTab = tabs.find(t => t.id === currentTabId);
-  if (currentTab) {
-    currentTab.name = e.target.value || 'untitled.c';
-    renderTabs();
-  }
-});
-
 /* ==========================================================
    Monaco Editor setup
 ========================================================== */
@@ -330,13 +377,11 @@ saveBtn.addEventListener("click", async () => {
   if (!editor) return;
 
   const currentTab = tabs.find(t => t.id === currentTabId);
-  const filename = document.getElementById('filenameInput').value || 'untitled.c';
+  const filename = currentTab.name;
   const content = editor.getValue();
 
-  // Update tab content and name
+  // Update tab content
   currentTab.content = content;
-  currentTab.name = filename;
-  renderTabs();
 
   status("Saving...");
   saveBtn.disabled = true;
@@ -354,7 +399,7 @@ saveBtn.addEventListener("click", async () => {
     const result = await response.json();
 
     if (result.success) {
-      status(`Saved: ${result.path}`);
+      status(`Saved: ${filename}`);
       setTimeout(() => status("Ready."), 2000);
     } else {
       status(`Save failed: ${result.error}`);

@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>多标签页功能实现详解 - 第一版 (commit f85f63e)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+      background: #1e1e1e; color: #d4d4d4;
+      padding: 40px;
+      line-height: 1.8;
+    }
+    h1 {
+      color: #4ec9b0;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 3px solid #3e3e42;
+    }
+    h2 {
+      color: #569cd6;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3e3e42;
+    }
+    h3 {
+      color: #dcdcaa;
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+    h4 {
+      color: #c586c0;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    p {
+      margin-bottom: 15px;
+    }
+    ul, ol {
+      margin-left: 30px;
+      margin-bottom: 15px;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+    code {
+      background: #2d2d30;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #ce9178;
+      font-family: 'Consolas', monospace;
+      font-size: 0.95em;
+    }
+    pre {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 15px 0;
+      border-left: 4px solid #569cd6;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      color: #d4d4d4;
+      font-size: 0.9em;
+    }
+    .section {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .highlight {
+      background: #3e3e42;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .important {
+      background: #3e2f1f;
+      border-left: 4px solid #ce9178;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+    }
+    .success {
+      background: #1f3e2f;
+      border-left: 4px solid #4ec9b0;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+    }
+    .code-block-header {
+      background: #2d2d30;
+      color: #569cd6;
+      padding: 10px 15px;
+      border-radius: 6px 6px 0 0;
+      font-weight: bold;
+      margin-bottom: -15px;
+      margin-top: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #3e3e42;
+    }
+    th {
+      background: #2d2d30;
+      color: #569cd6;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background: #252526;
+    }
+    .line-number {
+      color: #858585;
+      user-select: none;
+      padding-right: 15px;
+      border-right: 1px solid #3e3e42;
+      margin-right: 15px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📚 多标签页与文件保存功能实现详解（第一版）</h1>
+
+<div class="important">
+  <strong>⚠️ 文档说明</strong>
+  <p>本文档详细讲解 commit f85f63e 中添加的多标签页和文件保存功能的实现细节。这是第一版实现，后续有改进版本（见另一文档）。</p>
+</div>
+
+<h2>📝 Commit 信息</h2>
+
+<div class="section">
+  <strong>Commit ID:</strong> f85f63e<br>
+  <strong>提交信息:</strong> Add multi-tab support and local file save functionality<br>
+  <strong>修改文件:</strong>
+  <ul>
+    <li>CCompiler.html - 添加多标签页系统和保存功能</li>
+    <li>serve-ccompiler.py - 添加 POST /save 端点</li>
+  </ul>
+</div>
+
+<h2>🎯 新增功能概览</h2>
+
+<h3>1. 多标签页系统</h3>
+<ul>
+  <li>✅ 创建多个代码标签页</li>
+  <li>✅ 切换标签查看/编辑不同文件</li>
+  <li>✅ 关闭标签（最少保留1个）</li>
+  <li>✅ 每个标签独立保存代码内容</li>
+  <li>✅ 标签名称显示</li>
+</ul>
+
+<h3>2. 文件名管理</h3>
+<ul>
+  <li>✅ 右侧文件名输入框</li>
+  <li>✅ 实时修改文件名</li>
+  <li>✅ 文件名与标签名同步</li>
+</ul>
+
+<h3>3. 本地文件保存</h3>
+<ul>
+  <li>✅ 保存按钮</li>
+  <li>✅ HTTP POST 请求到服务器</li>
+  <li>✅ 文件保存到本地目录</li>
+  <li>✅ 保存状态反馈</li>
+</ul>
+
+<h2>💻 代码实现详解 - CCompiler.html</h2>
+
+<h3>Part 1: 新增 CSS 样式</h3>
+
+<div class="code-block-header">CSS - 标签容器样式</div>
+<pre><code>.tabs-container {
+  display: flex; align-items: center; gap: 0.3rem;
+  padding: 0.5rem 1rem;
+  background: #0f172a;
+  border-bottom: 1px solid #1f2937;
+  overflow-x: auto;
+}</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li><code>display: flex</code> - 使用 Flexbox 布局，子元素横向排列</li>
+    <li><code>align-items: center</code> - 垂直居中对齐所有标签</li>
+    <li><code>gap: 0.3rem</code> - 标签之间的间距为 0.3rem (约 4.8px)</li>
+    <li><code>padding: 0.5rem 1rem</code> - 内边距：上下 0.5rem，左右 1rem</li>
+    <li><code>background: #0f172a</code> - 深蓝灰色背景，与 header 一致</li>
+    <li><code>border-bottom: 1px solid #1f2937</code> - 底部边框，与整体风格统一</li>
+    <li><code>overflow-x: auto</code> - 标签过多时横向滚动，防止溢出</li>
+  </ul>
+</div>
+
+<div class="code-block-header">CSS - 单个标签样式</div>
+<pre><code>.tab {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: #1f2937;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  border: 1px solid #334155;
+  white-space: nowrap;
+}
+.tab:hover { background: #2d3748; }
+.tab.active {
+  background: #0b1020;
+  border-bottom-color: #0b1020;
+}</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li><code>display: flex</code> - 标签内部也使用 Flex 布局（标签名 + 关闭按钮）</li>
+    <li><code>gap: 0.5rem</code> - 标签名和关闭按钮之间的间距</li>
+    <li><code>padding: 0.4rem 0.8rem</code> - 标签内边距，使其有足够点击区域</li>
+    <li><code>background: #1f2937</code> - 非活动标签的灰色背景</li>
+    <li><code>border-radius: 6px 6px 0 0</code> - 只圆角顶部两角，模拟真实标签页</li>
+    <li><code>cursor: pointer</code> - 鼠标悬停时显示手型指针，提示可点击</li>
+    <li><code>border: 1px solid #334155</code> - 边框，增强标签的视觉边界</li>
+    <li><code>white-space: nowrap</code> - 文字不换行，防止标签文字折叠</li>
+    <li><code>.tab:hover</code> - 悬停时变亮，提供视觉反馈</li>
+    <li><code>.tab.active</code> - 活动标签使用深色背景，与编辑器背景一致</li>
+    <li><code>border-bottom-color: #0b1020</code> - 活动标签底边与背景同色，制造"融合"效果</li>
+  </ul>
+</div>
+
+<div class="code-block-header">CSS - 标签名称样式</div>
+<pre><code>.tab-name {
+  font-size: 0.85rem;
+  min-width: 80px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li><code>font-size: 0.85rem</code> - 略小于正文，节省空间</li>
+    <li><code>min-width: 80px</code> - 最小宽度80px，确保短文件名也有足够区域显示</li>
+    <li><code>max-width: 150px</code> - 最大宽度150px，防止超长文件名占用过多空间</li>
+    <li><code>overflow: hidden</code> - 超出部分隐藏</li>
+    <li><code>text-overflow: ellipsis</code> - 超出部分显示省略号 (...)</li>
+  </ul>
+  <p><strong>效果：</strong> 文件名 "verylongfilename.c" 会显示为 "verylongfi..."</p>
+</div>
+
+<div class="code-block-header">CSS - 关闭按钮样式</div>
+<pre><code>.tab-close {
+  color: #9ca3af;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.3rem;
+  border-radius: 3px;
+}
+.tab-close:hover {
+  color: #f87171;
+  background: #1f2937;
+}</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li><code>color: #9ca3af</code> - 灰色，低调不抢眼</li>
+    <li><code>font-size: 1.1rem</code> - 略大于标签文字，易于点击</li>
+    <li><code>line-height: 1</code> - 行高为1，紧凑显示</li>
+    <li><code>padding: 0 0.3rem</code> - 左右内边距，增大点击区域</li>
+    <li><code>border-radius: 3px</code> - 小圆角，美化外观</li>
+    <li><code>.tab-close:hover</code> - 悬停时变红色，提示这是关闭操作</li>
+    <li><code>background: #1f2937</code> - 悬停时添加背景，增强视觉反馈</li>
+  </ul>
+</div>
+
+<div class="code-block-header">CSS - 添加标签按钮样式</div>
+<pre><code>.tab-add {
+  padding: 0.4rem 0.8rem;
+  background: #334155;
+  border-radius: 6px;
+  border: 1px solid #475569;
+  font-size: 1rem;
+  line-height: 1;
+}
+.tab-add:hover { background: #475569; }</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li><code>background: #334155</code> - 深灰色，区别于普通标签</li>
+    <li><code>border-radius: 6px</code> - 四角圆角，区别于标签的"半圆角"</li>
+    <li><code>font-size: 1rem</code> - "+" 符号大小适中</li>
+    <li><code>:hover { background: #475569 }</code> - 悬停时变亮</li>
+  </ul>
+</div>
+
+<div class="code-block-header">CSS - 保存控件区域样式</div>
+<pre><code>.save-controls {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-left: auto;
+}
+.filename-input {
+  padding: 0.35rem 0.6rem;
+  background: #1f2937;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  width: 180px;
+}
+.filename-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li><code>.save-controls</code>:
+      <ul>
+        <li><code>margin-left: auto</code> - <strong>关键！</strong>将整个区域推到最右侧</li>
+        <li>利用 Flexbox 的 auto margin 特性，占据所有剩余空间</li>
+      </ul>
+    </li>
+    <li><code>.filename-input</code>:
+      <ul>
+        <li><code>width: 180px</code> - 固定宽度，足够显示大部分文件名</li>
+        <li><code>background: #1f2937</code> - 与标签背景一致</li>
+        <li><code>color: #e5e7eb</code> - 浅灰色文字，易读</li>
+      </ul>
+    </li>
+    <li><code>.filename-input:focus</code>:
+      <ul>
+        <li><code>outline: none</code> - 移除默认的蓝色外框</li>
+        <li><code>border-color: #3b82f6</code> - 焦点时边框变蓝，提示用户正在编辑</li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<h3>Part 2: HTML 结构</h3>
+
+<div class="code-block-header">HTML - 标签栏结构</div>
+<pre><code>&lt;div class="tabs-container"&gt;
+  &lt;div class="tab active" data-tab-id="0"&gt;
+    &lt;span class="tab-name"&gt;main.c&lt;/span&gt;
+    &lt;span class="tab-close" onclick="closeTab(0, event)"&gt;×&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;button class="tab-add" onclick="addNewTab()"&gt;+&lt;/button&gt;
+  &lt;div class="save-controls"&gt;
+    &lt;input type="text" class="filename-input" id="filenameInput"
+           placeholder="filename.c" value="main.c"&gt;
+    &lt;button id="saveBtn" disabled&gt;💾 Save&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+<div class="section">
+  <h4>结构分析：</h4>
+  <ol>
+    <li><strong>标签容器</strong> (<code>.tabs-container</code>)
+      <ul>
+        <li>包含所有标签、添加按钮、保存控件</li>
+      </ul>
+    </li>
+    <li><strong>初始标签</strong> (<code>.tab.active</code>)
+      <ul>
+        <li><code>data-tab-id="0"</code> - 数据属性，存储标签ID</li>
+        <li><code>class="active"</code> - CSS类，标记为活动标签</li>
+        <li>包含标签名和关闭按钮</li>
+      </ul>
+    </li>
+    <li><strong>添加按钮</strong> (<code>.tab-add</code>)
+      <ul>
+        <li><code>onclick="addNewTab()"</code> - 点击时调用函数创建新标签</li>
+      </ul>
+    </li>
+    <li><strong>保存控件</strong> (<code>.save-controls</code>)
+      <ul>
+        <li>文件名输入框</li>
+        <li>保存按钮（初始禁用，等编辑器加载完成）</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<h3>Part 3: JavaScript 数据结构</h3>
+
+<div class="code-block-header">JS - 全局变量</div>
+<pre><code>let tabs = [
+  {
+    id: 0,
+    name: 'main.c',
+    content: `#include &lt;stdio.h&gt;
+
+int main() {
+  printf("Hello from C!\\n");
+  return 0;
+}
+`
+  }
+];
+let currentTabId = 0;
+let nextTabId = 1;
+let editor = null;</code></pre>
+
+<div class="section">
+  <h4>变量说明：</h4>
+  <table>
+    <tr>
+      <th>变量名</th>
+      <th>类型</th>
+      <th>作用</th>
+    </tr>
+    <tr>
+      <td><code>tabs</code></td>
+      <td>Array</td>
+      <td>存储所有标签的数组，每个标签是一个对象</td>
+    </tr>
+    <tr>
+      <td><code>tabs[i].id</code></td>
+      <td>Number</td>
+      <td>标签的唯一标识符，用于切换和关闭</td>
+    </tr>
+    <tr>
+      <td><code>tabs[i].name</code></td>
+      <td>String</td>
+      <td>文件名，显示在标签上</td>
+    </tr>
+    <tr>
+      <td><code>tabs[i].content</code></td>
+      <td>String</td>
+      <td>该标签的代码内容（完整代码字符串）</td>
+    </tr>
+    <tr>
+      <td><code>currentTabId</code></td>
+      <td>Number</td>
+      <td>当前活动标签的ID</td>
+    </tr>
+    <tr>
+      <td><code>nextTabId</code></td>
+      <td>Number</td>
+      <td>下一个新标签的ID（递增分配，确保唯一性）</td>
+    </tr>
+    <tr>
+      <td><code>editor</code></td>
+      <td>Object/null</td>
+      <td>Monaco 编辑器实例的引用</td>
+    </tr>
+  </table>
+</div>
+
+<h3>Part 4: 核心函数详解</h3>
+
+<h4>函数 1: renderTabs()</h4>
+
+<div class="code-block-header">JS - 渲染标签</div>
+<pre><code>function renderTabs() {
+  const container = document.querySelector('.tabs-container');
+  const saveControls = container.querySelector('.save-controls');
+  const addButton = container.querySelector('.tab-add');
+
+  // Remove all tabs except add button and save controls
+  const tabElements = container.querySelectorAll('.tab');
+  tabElements.forEach(el => el.remove());
+
+  // Create tab elements
+  tabs.forEach(tab => {
+    const tabEl = document.createElement('div');
+    tabEl.className = 'tab' + (tab.id === currentTabId ? ' active' : '');
+    tabEl.dataset.tabId = tab.id;
+    tabEl.innerHTML = `
+      &lt;span class="tab-name"&gt;${tab.name}&lt;/span&gt;
+      &lt;span class="tab-close" onclick="closeTab(${tab.id}, event)"&gt;×&lt;/span&gt;
+    `;
+    tabEl.onclick = (e) => {
+      if (!e.target.classList.contains('tab-close')) {
+        switchTab(tab.id);
+      }
+    };
+    container.insertBefore(tabEl, addButton);
+  });
+
+  updateFilenameInput();
+}</code></pre>
+
+<div class="section">
+  <h4>逐行详解：</h4>
+
+  <p><strong>第 1-3 行：获取 DOM 元素引用</strong></p>
+  <pre><code>const container = document.querySelector('.tabs-container');
+const saveControls = container.querySelector('.save-controls');
+const addButton = container.querySelector('.tab-add');</code></pre>
+  <ul>
+    <li><code>querySelector()</code> - 查找并返回第一个匹配的元素</li>
+    <li>保存引用以便后续插入标签时定位</li>
+  </ul>
+
+  <p><strong>第 6-7 行：清除现有标签</strong></p>
+  <pre><code>const tabElements = container.querySelectorAll('.tab');
+tabElements.forEach(el => el.remove());</code></pre>
+  <ul>
+    <li><code>querySelectorAll()</code> - 获取所有 <code>.tab</code> 元素（返回 NodeList）</li>
+    <li><code>forEach(el => el.remove())</code> - 遍历并删除每个标签</li>
+    <li><strong>为什么要删除？</strong> 重新渲染全部标签，确保状态一致（类似 React 的重新渲染）</li>
+  </ul>
+
+  <p><strong>第 10 行：遍历标签数据</strong></p>
+  <pre><code>tabs.forEach(tab => {</code></pre>
+  <ul>
+    <li>遍历 <code>tabs</code> 数组中的每个标签对象</li>
+  </ul>
+
+  <p><strong>第 11-13 行：创建标签元素</strong></p>
+  <pre><code>const tabEl = document.createElement('div');
+tabEl.className = 'tab' + (tab.id === currentTabId ? ' active' : '');
+tabEl.dataset.tabId = tab.id;</code></pre>
+  <ul>
+    <li><code>createElement('div')</code> - 创建新的 div 元素</li>
+    <li><code>className</code> - 设置 CSS 类名
+      <ul>
+        <li>基础类：<code>'tab'</code></li>
+        <li>条件类：如果是当前标签，添加 <code>' active'</code></li>
+        <li>三元运算符 <code>? :</code> 实现条件判断</li>
+      </ul>
+    </li>
+    <li><code>dataset.tabId</code> - 设置 <code>data-tab-id</code> 属性，存储标签ID</li>
+  </ul>
+
+  <p><strong>第 14-17 行：设置标签内容</strong></p>
+  <pre><code>tabEl.innerHTML = `
+  &lt;span class="tab-name"&gt;${tab.name}&lt;/span&gt;
+  &lt;span class="tab-close" onclick="closeTab(${tab.id}, event)"&gt;×&lt;/span&gt;
+`;</code></pre>
+  <ul>
+    <li>使用模板字符串 <code>`...`</code> 定义 HTML</li>
+    <li><code>${tab.name}</code> - 插入标签名称</li>
+    <li><code>${tab.id}</code> - 插入标签ID到 onclick 属性</li>
+    <li><code>onclick="closeTab(..., event)"</code> - 关闭按钮的点击事件</li>
+    <li><code>event</code> 参数 - 传递事件对象，用于 <code>stopPropagation()</code></li>
+  </ul>
+
+  <p><strong>第 18-22 行：添加标签点击事件</strong></p>
+  <pre><code>tabEl.onclick = (e) => {
+  if (!e.target.classList.contains('tab-close')) {
+    switchTab(tab.id);
+  }
+};</code></pre>
+  <ul>
+    <li><code>tabEl.onclick</code> - 为整个标签添加点击事件</li>
+    <li><code>e.target</code> - 实际被点击的元素</li>
+    <li><code>classList.contains('tab-close')</code> - 检查是否点击了关闭按钮</li>
+    <li><strong>逻辑：</strong> 如果点击的不是关闭按钮，就切换到该标签</li>
+    <li><strong>为什么要判断？</strong> 防止点击关闭按钮时也触发标签切换</li>
+  </ul>
+
+  <p><strong>第 23 行：插入标签到容器</strong></p>
+  <pre><code>container.insertBefore(tabEl, addButton);</code></pre>
+  <ul>
+    <li><code>insertBefore(新元素, 参考元素)</code> - 在参考元素之前插入新元素</li>
+    <li>在 <code>addButton</code> 之前插入，确保 "+" 按钮始终在标签后面</li>
+    <li>保存控件已经通过 CSS 的 <code>margin-left: auto</code> 被推到最右侧</li>
+  </ul>
+
+  <p><strong>第 26 行：更新文件名输入框</strong></p>
+  <pre><code>updateFilenameInput();</code></pre>
+  <ul>
+    <li>调用辅助函数，更新右侧输入框的文件名</li>
+  </ul>
+</div>
+
+<h4>函数 2: switchTab(tabId)</h4>
+
+<div class="code-block-header">JS - 切换标签</div>
+<pre><code>function switchTab(tabId) {
+  // Save current tab content
+  if (editor) {
+    const currentTab = tabs.find(t => t.id === currentTabId);
+    if (currentTab) {
+      currentTab.content = editor.getValue();
+    }
+  }
+
+  // Switch to new tab
+  currentTabId = tabId;
+  const newTab = tabs.find(t => t.id === tabId);
+  if (newTab && editor) {
+    editor.setValue(newTab.content);
+  }
+
+  renderTabs();
+}</code></pre>
+
+<div class="section">
+  <h4>逐行详解：</h4>
+
+  <p><strong>第 3-7 行：保存当前标签的代码</strong></p>
+  <pre><code>if (editor) {
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  if (currentTab) {
+    currentTab.content = editor.getValue();
+  }
+}</code></pre>
+  <ul>
+    <li><code>if (editor)</code> - 确保编辑器已加载</li>
+    <li><code>tabs.find()</code> - 在数组中查找匹配条件的第一个元素
+      <ul>
+        <li><code>t => t.id === currentTabId</code> - 箭头函数，查找ID匹配的标签</li>
+        <li>返回找到的标签对象，如果没找到返回 <code>undefined</code></li>
+      </ul>
+    </li>
+    <li><code>editor.getValue()</code> - 获取编辑器中的所有文本内容</li>
+    <li><code>currentTab.content = ...</code> - 将内容保存到标签对象</li>
+    <li><strong>为什么要保存？</strong> 切换前保存当前代码，防止丢失未保存的修改</li>
+  </ul>
+
+  <p><strong>第 10 行：更新当前标签ID</strong></p>
+  <pre><code>currentTabId = tabId;</code></pre>
+  <ul>
+    <li>将全局变量 <code>currentTabId</code> 更新为新标签的ID</li>
+  </ul>
+
+  <p><strong>第 11-14 行：加载新标签的代码</strong></p>
+  <pre><code>const newTab = tabs.find(t => t.id === tabId);
+if (newTab && editor) {
+  editor.setValue(newTab.content);
+}</code></pre>
+  <ul>
+    <li>查找新标签对象</li>
+    <li><code>if (newTab && editor)</code> - 确保标签存在且编辑器已加载</li>
+    <li><code>editor.setValue()</code> - 将新标签的代码加载到编辑器</li>
+    <li><strong>效果：</strong> 编辑器内容立即切换到新标签的代码</li>
+  </ul>
+
+  <p><strong>第 16 行：重新渲染UI</strong></p>
+  <pre><code>renderTabs();</code></pre>
+  <ul>
+    <li>重新渲染标签栏，更新活动标签的高亮状态</li>
+  </ul>
+</div>
+
+<h4>函数 3: addNewTab()</h4>
+
+<div class="code-block-header">JS - 添加新标签</div>
+<pre><code>function addNewTab() {
+  const newTab = {
+    id: nextTabId++,
+    name: `file${nextTabId}.c`,
+    content: `#include &lt;stdio.h&gt;
+
+int main() {
+  // Your code here
+  return 0;
+}
+`
+  };
+  tabs.push(newTab);
+  switchTab(newTab.id);
+}</code></pre>
+
+<div class="section">
+  <h4>逐行详解：</h4>
+
+  <p><strong>第 2-11 行：创建新标签对象</strong></p>
+  <pre><code>const newTab = {
+  id: nextTabId++,
+  name: `file${nextTabId}.c`,
+  content: `...`
+};</code></pre>
+  <ul>
+    <li><code>id: nextTabId++</code> - <strong>关键操作！</strong>
+      <ul>
+        <li>使用当前的 <code>nextTabId</code> 作为ID</li>
+        <li><code>++</code> 后缀递增：先使用值，后递增</li>
+        <li>例如：<code>nextTabId = 1</code> → 使用1作为ID → <code>nextTabId</code> 变为2</li>
+      </ul>
+    </li>
+    <li><code>name: `file${nextTabId}.c`</code> - 自动生成文件名
+      <ul>
+        <li>注意此时 <code>nextTabId</code> 已经递增了</li>
+        <li>所以文件名会是 <code>file2.c</code>, <code>file3.c</code> 等</li>
+      </ul>
+    </li>
+    <li><code>content</code> - 默认的模板代码</li>
+  </ul>
+
+  <p><strong>第 12 行：添加到数组</strong></p>
+  <pre><code>tabs.push(newTab);</code></pre>
+  <ul>
+    <li><code>push()</code> - 将新标签对象添加到数组末尾</li>
+  </ul>
+
+  <p><strong>第 13 行：切换到新标签</strong></p>
+  <pre><code>switchTab(newTab.id);</code></pre>
+  <ul>
+    <li>自动切换到新创建的标签</li>
+    <li>用户可以立即看到新标签并开始编辑</li>
+  </ul>
+</div>
+
+<h4>函数 4: closeTab(tabId, event)</h4>
+
+<div class="code-block-header">JS - 关闭标签</div>
+<pre><code>function closeTab(tabId, event) {
+  event.stopPropagation();
+
+  if (tabs.length === 1) {
+    alert('Cannot close the last tab!');
+    return;
+  }
+
+  const tabIndex = tabs.findIndex(t => t.id === tabId);
+  tabs.splice(tabIndex, 1);
+
+  // If closing current tab, switch to another
+  if (tabId === currentTabId) {
+    const newCurrentTab = tabs[Math.max(0, tabIndex - 1)];
+    currentTabId = newCurrentTab.id;
+    if (editor) {
+      editor.setValue(newCurrentTab.content);
+    }
+  }
+
+  renderTabs();
+}</code></pre>
+
+<div class="section">
+  <h4>逐行详解：</h4>
+
+  <p><strong>第 2 行：阻止事件冒泡</strong></p>
+  <pre><code>event.stopPropagation();</code></pre>
+  <ul>
+    <li><strong>关键！</strong>阻止事件继续传播到父元素</li>
+    <li>如果不阻止，点击关闭按钮会：
+      <ol>
+        <li>触发关闭按钮的 onclick</li>
+        <li>事件冒泡到标签 div</li>
+        <li>触发标签的 onclick（切换标签）</li>
+      </ol>
+    </li>
+    <li>结果：标签不会关闭，反而会切换</li>
+  </ul>
+
+  <p><strong>第 4-6 行：防止关闭最后一个标签</strong></p>
+  <pre><code>if (tabs.length === 1) {
+  alert('Cannot close the last tab!');
+  return;
+}</code></pre>
+  <ul>
+    <li>确保至少保留一个标签</li>
+    <li><code>return</code> - 提前退出函数，不执行后续关闭操作</li>
+  </ul>
+
+  <p><strong>第 8-9 行：从数组中删除标签</strong></p>
+  <pre><code>const tabIndex = tabs.findIndex(t => t.id === tabId);
+tabs.splice(tabIndex, 1);</code></pre>
+  <ul>
+    <li><code>findIndex()</code> - 查找并返回数组索引
+      <ul>
+        <li>如果找到，返回索引（0, 1, 2...）</li>
+        <li>如果没找到，返回 -1</li>
+      </ul>
+    </li>
+    <li><code>splice(起始索引, 删除数量)</code> - 删除数组中的元素
+      <ul>
+        <li><code>splice(tabIndex, 1)</code> - 从 <code>tabIndex</code> 开始删除1个元素</li>
+        <li>会修改原数组，返回被删除的元素</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>第 12-18 行：智能切换标签</strong></p>
+  <pre><code>if (tabId === currentTabId) {
+  const newCurrentTab = tabs[Math.max(0, tabIndex - 1)];
+  currentTabId = newCurrentTab.id;
+  if (editor) {
+    editor.setValue(newCurrentTab.content);
+  }
+}</code></pre>
+  <ul>
+    <li><code>if (tabId === currentTabId)</code> - 如果关闭的是当前活动标签</li>
+    <li><code>Math.max(0, tabIndex - 1)</code> - 计算切换到哪个标签
+      <ul>
+        <li><code>tabIndex - 1</code> - 默认切换到左边的标签</li>
+        <li><code>Math.max(0, ...)</code> - 确保索引不为负数
+        <li>例如：
+          <ul>
+            <li>关闭索引2的标签 → 切换到索引1</li>
+            <li>关闭索引0的标签 → 切换到索引0（新的第一个）</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>更新 <code>currentTabId</code> 和编辑器内容</li>
+  </ul>
+
+  <p><strong>第 20 行：重新渲染</strong></p>
+  <pre><code>renderTabs();</code></pre>
+  <ul>
+    <li>更新UI，移除关闭的标签</li>
+  </ul>
+</div>
+
+<h4>函数 5: updateFilenameInput()</h4>
+
+<div class="code-block-header">JS - 更新文件名输入框</div>
+<pre><code>function updateFilenameInput() {
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  if (currentTab) {
+    document.getElementById('filenameInput').value = currentTab.name;
+  }
+}</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li>查找当前活动标签</li>
+    <li>将标签的文件名显示在右侧输入框中</li>
+    <li><strong>用途：</strong> 切换标签时，输入框自动显示对应的文件名</li>
+  </ul>
+</div>
+
+<h3>Part 5: 文件名输入框事件</h3>
+
+<div class="code-block-header">JS - 文件名修改事件</div>
+<pre><code>document.getElementById('filenameInput').addEventListener('change', (e) => {
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  if (currentTab) {
+    currentTab.name = e.target.value || 'untitled.c';
+    renderTabs();
+  }
+});</code></pre>
+
+<div class="section">
+  <h4>详细说明：</h4>
+  <ul>
+    <li><code>addEventListener('change', ...)</code> - 监听 <code>change</code> 事件
+      <ul>
+        <li><code>change</code> 事件在输入框失去焦点且值改变时触发</li>
+        <li>与 <code>input</code> 事件不同（<code>input</code> 每输入一个字符就触发）</li>
+      </ul>
+    </li>
+    <li><code>e.target.value</code> - 获取输入框的新值</li>
+    <li><code>|| 'untitled.c'</code> - 如果输入为空，使用默认名称</li>
+    <li><code>currentTab.name = ...</code> - 更新标签对象的名称</li>
+    <li><code>renderTabs()</code> - 重新渲染，标签上显示新名称</li>
+  </ul>
+  <p><strong>效果：</strong> 修改文件名后，标签名称也会同步更新</p>
+</div>
+
+<h3>Part 6: 保存功能</h3>
+
+<div class="code-block-header">JS - 保存按钮事件</div>
+<pre><code>saveBtn.addEventListener("click", async () => {
+  if (!editor) return;
+
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  const filename = document.getElementById('filenameInput').value || 'untitled.c';
+  const content = editor.getValue();
+
+  // Update tab content and name
+  currentTab.content = content;
+  currentTab.name = filename;
+  renderTabs();
+
+  status("Saving...");
+  saveBtn.disabled = true;
+
+  try {
+    const response = await fetch('/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: filename,
+        content: content
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      status(`Saved: ${result.path}`);
+      setTimeout(() => status("Ready."), 2000);
+    } else {
+      status(`Save failed: ${result.error}`);
+    }
+  } catch (e) {
+    status(`Save error: ${e.message}`);
+  } finally {
+    saveBtn.disabled = false;
+  }
+});</code></pre>
+
+<div class="section">
+  <h4>逐行详解：</h4>
+
+  <p><strong>第 1 行：异步事件处理</strong></p>
+  <pre><code>saveBtn.addEventListener("click", async () => {</code></pre>
+  <ul>
+    <li><code>async</code> 关键字 - 使函数成为异步函数
+      <ul>
+        <li>允许在函数内使用 <code>await</code></li>
+        <li>函数自动返回 Promise</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>第 2 行：防御性检查</strong></p>
+  <pre><code>if (!editor) return;</code></pre>
+  <ul>
+    <li>如果编辑器未初始化，直接返回</li>
+  </ul>
+
+  <p><strong>第 4-6 行：收集数据</strong></p>
+  <pre><code>const currentTab = tabs.find(t => t.id === currentTabId);
+const filename = document.getElementById('filenameInput').value || 'untitled.c';
+const content = editor.getValue();</code></pre>
+  <ul>
+    <li>获取当前标签对象</li>
+    <li>获取文件名（从输入框）</li>
+    <li>获取代码内容（从编辑器）</li>
+  </ul>
+
+  <p><strong>第 9-11 行：更新本地数据</strong></p>
+  <pre><code>currentTab.content = content;
+currentTab.name = filename;
+renderTabs();</code></pre>
+  <ul>
+    <li>更新标签对象的内容和名称</li>
+    <li>重新渲染UI（标签名可能改变）</li>
+  </ul>
+
+  <p><strong>第 13-14 行：UI 状态更新</strong></p>
+  <pre><code>status("Saving...");
+saveBtn.disabled = true;</code></pre>
+  <ul>
+    <li>显示"保存中"状态</li>
+    <li>禁用保存按钮，防止重复点击</li>
+  </ul>
+
+  <p><strong>第 17-24 行：发送 HTTP 请求</strong></p>
+  <pre><code>const response = await fetch('/save', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    filename: filename,
+    content: content
+  })
+});</code></pre>
+  <ul>
+    <li><code>await</code> - 等待 fetch 完成，暂停执行
+      <ul>
+        <li>不阻塞浏览器，其他代码可以继续运行</li>
+        <li>等待结束后继续执行后续代码</li>
+      </ul>
+    </li>
+    <li><code>fetch('/save', ...)</code> - 发送 HTTP 请求
+      <ul>
+        <li>URL: <code>/save</code> - 相对路径，发送到同一服务器</li>
+      </ul>
+    </li>
+    <li><code>method: 'POST'</code> - 使用 POST 方法（因为要发送数据）</li>
+    <li><code>headers</code> - 设置请求头
+      <ul>
+        <li><code>Content-Type: application/json</code> - 告诉服务器数据格式是 JSON</li>
+      </ul>
+    </li>
+    <li><code>body</code> - 请求体
+      <ul>
+        <li><code>JSON.stringify({...})</code> - 将 JavaScript 对象转换为 JSON 字符串</li>
+        <li>包含文件名和代码内容</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>第 26 行：解析响应</strong></p>
+  <pre><code>const result = await response.json();</code></pre>
+  <ul>
+    <li><code>response.json()</code> - 解析响应体为 JSON</li>
+    <li>返回 Promise，所以需要 <code>await</code></li>
+  </ul>
+
+  <p><strong>第 28-33 行：处理结果</strong></p>
+  <pre><code>if (result.success) {
+  status(`Saved: ${result.path}`);
+  setTimeout(() => status("Ready."), 2000);
+} else {
+  status(`Save failed: ${result.error}`);
+}</code></pre>
+  <ul>
+    <li>检查服务器返回的 <code>success</code> 字段</li>
+    <li>成功：显示文件路径，2秒后恢复"Ready"状态</li>
+    <li>失败：显示错误信息</li>
+  </ul>
+
+  <p><strong>第 34-36 行：错误处理</strong></p>
+  <pre><code>} catch (e) {
+  status(`Save error: ${e.message}`);
+}</code></pre>
+  <ul>
+    <li>捕获网络错误或其他异常</li>
+    <li>例如：网络断开、服务器崩溃等</li>
+  </ul>
+
+  <p><strong>第 37-39 行：清理工作</strong></p>
+  <pre><code>} finally {
+  saveBtn.disabled = false;
+}</code></pre>
+  <ul>
+    <li><code>finally</code> 块总是执行，无论成功还是失败</li>
+    <li>重新启用保存按钮</li>
+    <li><strong>关键！</strong>确保按钮不会永久禁用</li>
+  </ul>
+</div>
+
+<h2>🖥️ 服务器端实现 - serve-ccompiler.py</h2>
+
+<h3>新增导入</h3>
+
+<pre><code>import json
+import os</code></pre>
+
+<div class="section">
+  <ul>
+    <li><code>json</code> - 用于解析和生成 JSON 数据</li>
+    <li><code>os</code> - 用于文件路径操作和文件名清理</li>
+  </ul>
+</div>
+
+<h3>新增 do_POST 方法</h3>
+
+<div class="code-block-header">Python - POST 请求处理</div>
+<pre><code>def do_POST(self):
+    # Handle save file requests
+    if self.path == '/save':
+        try:
+            # Read request body
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length)
+            data = json.loads(body.decode('utf-8'))
+
+            filename = data.get('filename', 'untitled.c')
+            content = data.get('content', '')
+
+            # Security: sanitize filename to prevent directory traversal
+            filename = os.path.basename(filename)
+
+            # Save to current directory
+            filepath = os.path.join(os.getcwd(), filename)
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            # Send success response
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+
+            response = {
+                'success': True,
+                'path': filepath,
+                'message': f'Saved successfully to {filename}'
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+
+            print(f'Saved file: {filename}')
+
+        except Exception as e:
+            # Send error response
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+
+            response = {
+                'success': False,
+                'error': str(e)
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+
+            print(f'Error saving file: {e}')
+    else:
+        # Unknown POST path
+        self.send_response(404)
+        self.end_headers()</code></pre>
+
+<div class="section">
+  <h4>逐行详解：</h4>
+
+  <p><strong>第 3 行：路由判断</strong></p>
+  <pre><code>if self.path == '/save':</code></pre>
+  <ul>
+    <li><code>self.path</code> - 请求的 URL 路径</li>
+    <li>只处理 <code>/save</code> 请求</li>
+  </ul>
+
+  <p><strong>第 6-8 行：读取请求体</strong></p>
+  <pre><code>content_length = int(self.headers['Content-Length'])
+body = self.rfile.read(content_length)
+data = json.loads(body.decode('utf-8'))</code></pre>
+  <ul>
+    <li><code>Content-Length</code> 头 - 请求体的字节长度</li>
+    <li><code>self.rfile.read()</code> - 读取指定长度的字节</li>
+    <li><code>decode('utf-8')</code> - 将字节解码为字符串</li>
+    <li><code>json.loads()</code> - 将 JSON 字符串解析为 Python 字典</li>
+  </ul>
+
+  <p><strong>第 10-11 行：提取数据</strong></p>
+  <pre><code>filename = data.get('filename', 'untitled.c')
+content = data.get('content', '')</code></pre>
+  <ul>
+    <li><code>dict.get(key, default)</code> - 安全地获取字典值
+      <ul>
+        <li>如果 key 存在，返回对应的值</li>
+        <li>如果 key 不存在，返回 default</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>第 14 行：安全清理文件名</strong></p>
+  <pre><code>filename = os.path.basename(filename)</code></pre>
+  <ul>
+    <li><code>os.path.basename()</code> - 提取路径中的文件名部分
+      <ul>
+        <li>例如：<code>"/etc/passwd"</code> → <code>"passwd"</code></li>
+        <li>例如：<code>"../../../secret.txt"</code> → <code>"secret.txt"</code></li>
+      </ul>
+    </li>
+    <li><strong>安全性！</strong> 防止目录遍历攻击
+      <ul>
+        <li>攻击者可能发送 <code>"../../../../etc/passwd"</code></li>
+        <li><code>basename()</code> 会剥离所有目录部分</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>第 17 行：构建完整路径</strong></p>
+  <pre><code>filepath = os.path.join(os.getcwd(), filename)</code></pre>
+  <ul>
+    <li><code>os.getcwd()</code> - 获取当前工作目录</li>
+    <li><code>os.path.join()</code> - 安全地拼接路径
+      <ul>
+        <li>自动处理不同操作系统的路径分隔符（Windows 用 <code>\</code>，Linux/Mac 用 <code>/</code>）</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><strong>第 19-20 行：写入文件</strong></p>
+  <pre><code>with open(filepath, 'w', encoding='utf-8') as f:
+    f.write(content)</code></pre>
+  <ul>
+    <li><code>with</code> 语句 - 上下文管理器
+      <ul>
+        <li>自动关闭文件，即使发生异常</li>
+      </ul>
+    </li>
+    <li><code>open(..., 'w', ...)</code> - 写入模式
+      <ul>
+        <li>如果文件存在，覆盖内容</li>
+        <li>如果文件不存在，创建新文件</li>
+      </ul>
+    </li>
+    <li><code>encoding='utf-8'</code> - 使用 UTF-8 编码，支持中文等字符</li>
+  </ul>
+
+  <p><strong>第 23-25 行：发送 HTTP 响应头</strong></p>
+  <pre><code>self.send_response(200)
+self.send_header('Content-Type', 'application/json')
+self.end_headers()</code></pre>
+  <ul>
+    <li><code>200</code> - HTTP 状态码：OK（成功）</li>
+    <li><code>Content-Type: application/json</code> - 告诉客户端响应是 JSON 格式</li>
+    <li><code>end_headers()</code> - 结束头部，开始发送响应体</li>
+  </ul>
+
+  <p><strong>第 27-31 行：构建响应数据</strong></p>
+  <pre><code>response = {
+    'success': True,
+    'path': filepath,
+    'message': f'Saved successfully to {filename}'
+}</code></pre>
+  <ul>
+    <li>Python 字典，包含保存结果</li>
+    <li><code>success</code> - 布尔值，表示操作是否成功</li>
+    <li><code>path</code> - 完整文件路径</li>
+    <li><code>message</code> - 成功消息</li>
+  </ul>
+
+  <p><strong>第 32 行：发送响应体</strong></p>
+  <pre><code>self.wfile.write(json.dumps(response).encode('utf-8'))</code></pre>
+  <ul>
+    <li><code>json.dumps()</code> - 将 Python 字典转换为 JSON 字符串</li>
+    <li><code>.encode('utf-8')</code> - 将字符串编码为字节</li>
+    <li><code>self.wfile.write()</code> - 写入响应体</li>
+  </ul>
+
+  <p><strong>第 36-47 行：错误处理</strong></p>
+  <pre><code>except Exception as e:
+    self.send_response(500)
+    ...
+    response = {
+        'success': False,
+        'error': str(e)
+    }
+    ...</code></pre>
+  <ul>
+    <li><code>500</code> - HTTP 状态码：Internal Server Error（服务器内部错误）</li>
+    <li>返回包含错误信息的 JSON</li>
+    <li>记录错误到控制台</li>
+  </ul>
+
+  <p><strong>第 48-50 行：未知路径处理</strong></p>
+  <pre><code>else:
+    self.send_response(404)
+    self.end_headers()</code></pre>
+  <ul>
+    <li>如果不是 <code>/save</code> 路径，返回 404 Not Found</li>
+  </ul>
+</div>
+
+<h2>🔄 完整工作流程</h2>
+
+<div class="section">
+  <h3>用户点击"Save"按钮后的完整流程：</h3>
+  <ol>
+    <li><strong>客户端（浏览器）</strong>
+      <ol>
+        <li>用户点击保存按钮</li>
+        <li>JavaScript 获取当前标签名和编辑器内容</li>
+        <li>创建包含 <code>filename</code> 和 <code>content</code> 的 JSON 对象</li>
+        <li>使用 <code>fetch()</code> 发送 POST 请求到 <code>/save</code></li>
+        <li>等待服务器响应</li>
+      </ol>
+    </li>
+    <li><strong>服务器端（Python）</strong>
+      <ol>
+        <li>接收 POST 请求</li>
+        <li>读取请求体（JSON 数据）</li>
+        <li>解析 JSON 为 Python 字典</li>
+        <li>清理文件名（安全措施）</li>
+        <li>构建完整文件路径</li>
+        <li>写入文件到磁盘</li>
+        <li>返回成功/失败的 JSON 响应</li>
+      </ol>
+    </li>
+    <li><strong>客户端（浏览器）</strong>
+      <ol>
+        <li>接收服务器响应</li>
+        <li>解析 JSON</li>
+        <li>检查 <code>success</code> 字段</li>
+        <li>更新状态栏显示结果</li>
+        <li>重新启用保存按钮</li>
+      </ol>
+    </li>
+  </ol>
+</div>
+
+<h2>🎨 UI/UX 设计亮点</h2>
+
+<h3>1. 视觉反馈</h3>
+<ul>
+  <li>活动标签有明显的高亮效果</li>
+  <li>悬停时标签和按钮会变亮</li>
+  <li>关闭按钮悬停时变红，提示危险操作</li>
+  <li>保存按钮禁用时变灰</li>
+</ul>
+
+<h3>2. 防御性设计</h3>
+<ul>
+  <li>不能关闭最后一个标签（弹出警告）</li>
+  <li>文件名为空时使用默认名称</li>
+  <li>保存时禁用按钮防止重复点击</li>
+  <li>服务器端清理文件名防止攻击</li>
+</ul>
+
+<h3>3. 用户体验</h3>
+<ul>
+  <li>切换标签时自动保存内容，防止丢失</li>
+  <li>新标签自动切换，用户可立即编辑</li>
+  <li>文件名输入框焦点时蓝色边框</li>
+  <li>状态栏实时反馈操作结果</li>
+</ul>
+
+<h2>⚠️ 第一版的局限性</h2>
+
+<div class="important">
+  <h4>需要改进的地方：</h4>
+  <ul>
+    <li><strong>文件名输入框位置</strong> - 在右侧，远离标签，不够直观</li>
+    <li><strong>重命名方式</strong> - 需要单独的输入框，操作分散</li>
+    <li><strong>保存按钮位置</strong> - 也在右侧，与标签距离较远</li>
+    <li><strong>用户认知负担</strong> - 修改文件名需要在输入框操作，不如直接在标签上重命名</li>
+  </ul>
+</div>
+
+<div class="success">
+  <h4>改进版本（见下一文档）将实现：</h4>
+  <ul>
+    <li>✅ 双击标签名直接重命名（内联编辑）</li>
+    <li>✅ 移除单独的文件名输入框</li>
+    <li>✅ 保存按钮移到标签旁边</li>
+    <li>✅ 更自然的用户交互流程</li>
+  </ul>
+</div>
+
+<h2>📚 总结</h2>
+
+<p>第一版实现完成了基础的多标签页功能和文件保存功能。虽然功能完整，但UI设计还有改进空间。关键技术点包括：</p>
+
+<ul>
+  <li><strong>JavaScript 数组操作</strong>：<code>find()</code>, <code>findIndex()</code>, <code>splice()</code>, <code>push()</code></li>
+  <li><strong>DOM 操作</strong>：动态创建元素、事件处理、防止事件冒泡</li>
+  <li><strong>异步编程</strong>：<code>async/await</code>, <code>fetch()</code> API</li>
+  <li><strong>HTTP 通信</strong>：POST 请求、JSON 数据交换</li>
+  <li><strong>Python 服务器</strong>：HTTP 请求处理、文件操作、安全防护</li>
+  <li><strong>CSS Flexbox</strong>：标签布局、<code>margin-left: auto</code> 推元素到右侧</li>
+</ul>
+
+<p><strong>代码统计：</strong></p>
+<ul>
+  <li>新增 HTML: ~50 行</li>
+  <li>新增 CSS: ~100 行</li>
+  <li>新增 JavaScript: ~150 行</li>
+  <li>新增 Python: ~60 行</li>
+  <li>总计新增: ~360 行代码</li>
+</ul>
+
+</body>
+</html>
