@@ -227,9 +227,17 @@ async function compileC(codeStr) {
     const project = new Directory();
     await project.writeFile("main.c", codeStr);
 
-    // clang args: compile main.c to wasm
+    // clang args: compile main.c to wasm with math library
+    // Using --target wasm32-wasi for proper WASI support
     const instance = await clang.entrypoint.run({
-      args: ["/project/main.c", "-O2", "-o", "/project/main.wasm"],
+      args: [
+        "--target=wasm32-wasi",  // Target WASI platform
+        "/project/main.c",
+        "-O2",
+        "-lm",  // Link math library
+        "-o",
+        "/project/main.wasm"
+      ],
       mount: { "/project": project },
     });
 
@@ -290,6 +298,7 @@ async function runWasmProgram(wasmBytes) {
     const module = await WebAssembly.compile(bytes);
     const instance = await WebAssembly.instantiate(module, {
       wasi_snapshot_preview1: wasi.wasiImport,
+      env: {},  // Provide empty env module for any remaining imports
     });
 
     // Start the WASI program
