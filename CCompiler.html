@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>C IDE + WASM Compiler (CDN clang)</title>
+
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      height: 100vh; display: flex; flex-direction: column;
+      background: #0b1020; color: #e5e7eb;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0f172a;
+    }
+    header h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    button {
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      border: 1px solid #334155; background: #111827; color: #e5e7eb;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .main {
+      flex: 1; display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      min-height: 0;
+    }
+    #editor { height: 100%; }
+    .right {
+      border-left: 1px solid #1f2937;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel {
+      padding: 0.6rem 0.8rem; border-bottom: 1px solid #1f2937;
+      background: #0b1224; font-size: 0.9rem;
+    }
+    #status { color: #9ca3af; }
+    #stdout, #stderr {
+      flex: 1; padding: 0.8rem; margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem; white-space: pre-wrap; overflow: auto;
+      background: #050814;
+    }
+    #stderr { color: #fca5a5; border-top: 1px dashed #1f2937; }
+
+    footer {
+      padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #9ca3af;
+      border-top: 1px solid #1f2937; background: #0f172a;
+    }
+    code { background:#111827; padding:0.1rem 0.3rem; border-radius:0.3rem; }
+  </style>
+
+  <!-- Monaco loader (AMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>C IDE (Monaco) + CDN clang (WASM)</h1>
+    <button id="compileBtn" disabled>Compile</button>
+    <button id="runBtn" disabled>Run (best-effort)</button>
+    <button id="exampleBtn">Load Example</button>
+    <span id="status">Loading editor…</span>
+  </header>
+
+  <div class="main">
+    <div id="editor"></div>
+
+    <div class="right">
+      <div class="panel">stdout</div>
+      <pre id="stdout"></pre>
+      <div class="panel">stderr</div>
+      <pre id="stderr"></pre>
+    </div>
+  </div>
+
+  <footer>
+    Notes:
+    <br/>1) First compile will download clang (~large). :contentReference[oaicite:2]{index=2}
+    <br/>2) Wasmer SDK requires COOP+COEP (cross-origin isolation). :contentReference[oaicite:3]{index=3}
+  </footer>
+
+<!-- module: we need top-level await for Wasmer SDK -->
+<script type="module">
+/* ==========================================================
+   0) Wasmer clang CDN compiler setup
+   Source: Wasmer "Clang in browser" JS example. :contentReference[oaicite:4]{index=4}
+========================================================== */
+import { init, Wasmer, Directory }
+  from "https://cdn.jsdelivr.net/npm/@wasmer/sdk@0.9.0/dist/index.mjs";
+import { WASI } from "https://cdn.jsdelivr.net/npm/@wasmer/wasi@1.2.2/+esm";
+
+let clangPromise = null;
+let wasmerInited = false;
+
+async function getClangPackage() {
+  if (!clangPromise) {
+    status("Loading Wasmer JS SDK…");
+    await init();
+    wasmerInited = true;
+    status("Downloading clang/clang (first time is big) …");
+    clangPromise = Wasmer.fromRegistry("clang/clang");
+  }
+  return clangPromise;
+}
+
+/* ==========================================================
+   1) Monaco Editor setup
+========================================================== */
+let editor = null;
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: `#include <stdio.h>
+
+int main() {
+  printf("Hello from C!\\n");
+  return 0;
+}
+`,
+    language: "c",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true
+  });
+
+  compileBtn.disabled = false;
+  status("Editor ready. Press Compile.");
+});
+
+/* ==========================================================
+   UI wiring
+========================================================== */
+const compileBtn = document.getElementById("compileBtn");
+const runBtn = document.getElementById("runBtn");
+const exampleBtn = document.getElementById("exampleBtn");
+const stdoutEl = document.getElementById("stdout");
+const stderrEl = document.getElementById("stderr");
+const statusEl = document.getElementById("status");
+
+function status(msg){ statusEl.textContent = msg; }
+function out(msg=""){ stdoutEl.textContent = msg; }
+function err(msg=""){ stderrEl.textContent = msg; }
+
+let lastWasm = null;
+
+/* ==========================================================
+   2) Compile button -> CDN clang
+========================================================== */
+compileBtn.addEventListener("click", async () => {
+  out(""); err("");
+  runBtn.disabled = true;
+  status("Compiling…");
+
+  const code = editor.getValue();
+
+  try {
+    const res = await compileC(code);
+    out(res.stdout || "");
+    err(res.stderr || "");
+
+    if (res.wasmBytes) {
+      lastWasm = res.wasmBytes;
+      runBtn.disabled = false;
+      status("Compile OK. You can Run (best-effort).");
+    } else {
+      status("Compile finished (no wasm output).");
+    }
+  } catch (e) {
+    err(String(e));
+    status("Compile error.");
+  }
+});
+
+/* ==========================================================
+   3) Run button (best effort)
+========================================================== */
+runBtn.addEventListener("click", async () => {
+  if (!lastWasm) return;
+  status("Running…");
+  try {
+    const runRes = await runWasmProgram(lastWasm);
+    out(runRes.stdout || "");
+    err(runRes.stderr || "");
+    status("Run finished.");
+  } catch (e) {
+    err(String(e));
+    status("Run error.");
+  }
+});
+
+/* ==========================================================
+   4) Example loader
+========================================================== */
+exampleBtn.addEventListener("click", () => {
+  const ex = `#include <stdio.h>
+#include <math.h>
+
+int main() {
+  for (int i=0;i<5;i++){
+    printf("i=%d  sin(i)=%.6f\\n", i, sin(i));
+  }
+  return 0;
+}`;
+  editor.setValue(ex);
+});
+
+/* ==========================================================
+   5) Compiler + runner implementations
+========================================================== */
+
+// CDN clang compile
+async function compileC(codeStr) {
+  try {
+    const clang = await getClangPackage();
+
+    const project = new Directory();
+    await project.writeFile("main.c", codeStr);
+
+    // clang args: compile main.c to wasm
+    const instance = await clang.entrypoint.run({
+      args: ["/project/main.c", "-O2", "-o", "/project/main.wasm"],
+      mount: { "/project": project },
+    });
+
+    const outRes = await instance.wait();
+
+    if (!outRes.ok) {
+      return { wasmBytes: null, stdout: outRes.stdout, stderr: outRes.stderr };
+    }
+
+    const wasmBytes = await project.readFile("main.wasm");
+    return { wasmBytes, stdout: outRes.stdout, stderr: outRes.stderr };
+
+  } catch (e) {
+    const msg = String(e);
+
+    // Friendly hint for missing COOP/COEP
+    if (msg.toLowerCase().includes("sharedarraybuffer") ||
+        msg.toLowerCase().includes("cross-origin")) {
+      throw new Error(
+        "Wasmer SDK needs Cross-Origin Isolation.\n" +
+        "Serve this page with headers:\n" +
+        "  Cross-Origin-Opener-Policy: same-origin\n" +
+        "  Cross-Origin-Embedder-Policy: require-corp\n" +
+        "Then reload.\n" +
+        "This is required by @wasmer/sdk. "
+      );
+    }
+    throw e;
+  }
+}
+
+// Run wasm using @wasmer/wasi runtime
+async function runWasmProgram(wasmBytes) {
+  const bytes = wasmBytes instanceof Uint8Array ? wasmBytes : new Uint8Array(wasmBytes);
+
+  try {
+    // Create WASI instance with stdout/stderr capture
+    const wasi = new WASI({
+      args: [],
+      env: {},
+    });
+
+    // Compile the WASM module
+    const module = await WebAssembly.compile(bytes);
+
+    // Get WASI imports
+    const imports = wasi.getImports(module);
+
+    // Instantiate with WASI imports
+    const instance = await WebAssembly.instantiate(module, imports);
+
+    // Start the WASI program
+    wasi.start(instance);
+
+    // Get captured output
+    const stdout = wasi.getStdoutString();
+    const stderr = wasi.getStderrString();
+
+    return {
+      stdout: stdout || "",
+      stderr: stderr || ""
+    };
+
+  } catch (e) {
+    return {
+      stdout: "",
+      stderr: `Runtime error: ${e.message || String(e)}\n`
+    };
+  }
+}
+</script>
+
+</body>
+</html>
