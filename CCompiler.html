@@ -273,85 +273,76 @@ async function runWasmProgram(wasmBytes) {
   const bytes = wasmBytes instanceof Uint8Array ? wasmBytes : new Uint8Array(wasmBytes);
 
   try {
-    // Create output capture arrays
+    // 创建输出缓存
     let stdoutBuffer = [];
     let stderrBuffer = [];
 
-    // Create stdout/stderr files that capture output
+    // 0: stdin（假的，占位，不用管它有没有输入）
+    const stdinFile = new OpenFile(new File([]));
+
+    // 1: stdout
     const stdoutFile = new OpenFile(new File([]));
     stdoutFile.write = (buf) => {
       stdoutBuffer.push(new TextDecoder().decode(buf));
       return buf.byteLength;
     };
 
+    // 2: stderr
     const stderrFile = new OpenFile(new File([]));
     stderrFile.write = (buf) => {
       stderrBuffer.push(new TextDecoder().decode(buf));
       return buf.byteLength;
     };
 
-    // Create WASI instance
-    const wasi = new WASI([], [], [stdoutFile, stderrFile]);
+    // ✅ 一定要三个 FD：[stdin, stdout, stderr]
+    const wasi = new WASI([], [], [stdinFile, stdoutFile, stderrFile]);
 
-    // Compile the WASM module
+    // 编译 WASM 模块
     const module = await WebAssembly.compile(bytes);
 
-    // Check what imports the module needs
+    // 查看模块需要哪些 imports
     const imports = WebAssembly.Module.imports(module);
 
-    // Build import object
+    // 构建 importObject
     const importObject = {
       wasi_snapshot_preview1: wasi.wasiImport,
-      wasix_32v1: wasi.wasiImport,  // Wasmer uses WASIX, map it to standard WASI
+      wasix_32v1: wasi.wasiImport,  // 映射到同一个
       env: {},
     };
 
-    // Provide imports based on what the module needs
+    // 维持你原来的 env stub 逻辑
     for (const imp of imports) {
       if (imp.module === "env") {
         if (imp.name === "memory" && imp.kind === "memory") {
-          // Create and provide shared memory (required by Wasmer)
           importObject.env.memory = new WebAssembly.Memory({
             initial: 256,
             maximum: 256,
-            shared: true  // 关键修复：添加共享内存支持
+            shared: true,
           });
         } else if (imp.kind === "function") {
-          // Provide stub function for any env functions
           importObject.env[imp.name] = (...args) => {
             console.warn(`Called stub function: env.${imp.name}`, args);
-            return 0;
-          };
-        }
-      } else if (imp.module === "wasix_32v1" && imp.kind === "function") {
-        // Check if WASI provides this function, otherwise create stub
-        if (wasi.wasiImport[imp.name]) {
-          importObject.wasix_32v1[imp.name] = wasi.wasiImport[imp.name];
-        } else {
-          // Provide stub function for WASIX-specific functions
-          importObject.wasix_32v1[imp.name] = (...args) => {
-            console.warn(`Called stub function: wasix_32v1.${imp.name}`, args);
             return 0;
           };
         }
       }
     }
 
-    // Instantiate with the import object
+    // 实例化
     const instance = await WebAssembly.instantiate(module, importObject);
 
-    // Start the WASI program
+    // 启动 WASI 程序
     wasi.start(instance);
 
     return {
       stdout: stdoutBuffer.join(""),
-      stderr: stderrBuffer.join("")
+      stderr: stderrBuffer.join(""),
     };
 
   } catch (e) {
     return {
       stdout: "",
-      stderr: `Runtime error: ${e.message || String(e)}\n`
+      stderr: `Runtime error: ${e.message || String(e)}\n`,
     };
   }
 }
