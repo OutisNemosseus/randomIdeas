@@ -26,6 +26,75 @@
     button:hover { background: #1f2937; }
     button:disabled { opacity: 0.5; cursor: default; }
 
+    /* Tab system styles */
+    .tabs-container {
+      display: flex; align-items: center; gap: 0.3rem;
+      padding: 0.5rem 1rem;
+      background: #0f172a;
+      border-bottom: 1px solid #1f2937;
+      overflow-x: auto;
+    }
+    .tab {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      background: #1f2937;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      border: 1px solid #334155;
+      white-space: nowrap;
+    }
+    .tab:hover { background: #2d3748; }
+    .tab.active {
+      background: #0b1020;
+      border-bottom-color: #0b1020;
+    }
+    .tab-name {
+      font-size: 0.85rem;
+      min-width: 80px;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tab-close {
+      color: #9ca3af;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0 0.3rem;
+      border-radius: 3px;
+    }
+    .tab-close:hover {
+      color: #f87171;
+      background: #1f2937;
+    }
+    .tab-add {
+      padding: 0.4rem 0.8rem;
+      background: #334155;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .tab-add:hover { background: #475569; }
+
+    /* Save controls */
+    .save-controls {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-left: auto;
+    }
+    .filename-input {
+      padding: 0.35rem 0.6rem;
+      background: #1f2937;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      width: 180px;
+    }
+    .filename-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
     .main {
       flex: 1; display: grid;
       grid-template-columns: 1.2fr 0.8fr;
@@ -62,11 +131,23 @@
 
 <body>
   <header>
-    <h1>C IDE (Monaco) + Wandbox Online Compiler</h1>
+    <h1>C IDE (Monaco) + Wandbox</h1>
     <button id="runBtn" disabled>▶ Compile & Run</button>
     <button id="exampleBtn">Load Example</button>
     <span id="status">Loading editor…</span>
   </header>
+
+  <div class="tabs-container">
+    <div class="tab active" data-tab-id="0">
+      <span class="tab-name">main.c</span>
+      <span class="tab-close" onclick="closeTab(0, event)">×</span>
+    </div>
+    <button class="tab-add" onclick="addNewTab()">+</button>
+    <div class="save-controls">
+      <input type="text" class="filename-input" id="filenameInput" placeholder="filename.c" value="main.c">
+      <button id="saveBtn" disabled>💾 Save</button>
+    </div>
+  </div>
 
   <div class="main">
     <div id="editor"></div>
@@ -78,28 +159,143 @@
   </div>
 
   <footer>
-    Uses Wandbox online compiler API (gcc-head) • No local compilation required • Supports math.h and standard libraries
+    Uses Wandbox online compiler API (gcc-head) • Multiple tabs • Auto-save to local folder
   </footer>
 
 <script>
 /* ==========================================================
-   1) Monaco Editor setup
+   Tab Management System
 ========================================================== */
+let tabs = [
+  {
+    id: 0,
+    name: 'main.c',
+    content: `#include <stdio.h>
+
+int main() {
+  printf("Hello from C!\\n");
+  return 0;
+}
+`
+  }
+];
+let currentTabId = 0;
+let nextTabId = 1;
 let editor = null;
 
+function renderTabs() {
+  const container = document.querySelector('.tabs-container');
+  const saveControls = container.querySelector('.save-controls');
+  const addButton = container.querySelector('.tab-add');
+
+  // Remove all tabs except add button and save controls
+  const tabElements = container.querySelectorAll('.tab');
+  tabElements.forEach(el => el.remove());
+
+  // Create tab elements
+  tabs.forEach(tab => {
+    const tabEl = document.createElement('div');
+    tabEl.className = 'tab' + (tab.id === currentTabId ? ' active' : '');
+    tabEl.dataset.tabId = tab.id;
+    tabEl.innerHTML = `
+      <span class="tab-name">${tab.name}</span>
+      <span class="tab-close" onclick="closeTab(${tab.id}, event)">×</span>
+    `;
+    tabEl.onclick = (e) => {
+      if (!e.target.classList.contains('tab-close')) {
+        switchTab(tab.id);
+      }
+    };
+    container.insertBefore(tabEl, addButton);
+  });
+
+  updateFilenameInput();
+}
+
+function switchTab(tabId) {
+  // Save current tab content
+  if (editor) {
+    const currentTab = tabs.find(t => t.id === currentTabId);
+    if (currentTab) {
+      currentTab.content = editor.getValue();
+    }
+  }
+
+  // Switch to new tab
+  currentTabId = tabId;
+  const newTab = tabs.find(t => t.id === tabId);
+  if (newTab && editor) {
+    editor.setValue(newTab.content);
+  }
+
+  renderTabs();
+}
+
+function addNewTab() {
+  const newTab = {
+    id: nextTabId++,
+    name: `file${nextTabId}.c`,
+    content: `#include <stdio.h>
+
+int main() {
+  // Your code here
+  return 0;
+}
+`
+  };
+  tabs.push(newTab);
+  switchTab(newTab.id);
+}
+
+function closeTab(tabId, event) {
+  event.stopPropagation();
+
+  if (tabs.length === 1) {
+    alert('Cannot close the last tab!');
+    return;
+  }
+
+  const tabIndex = tabs.findIndex(t => t.id === tabId);
+  tabs.splice(tabIndex, 1);
+
+  // If closing current tab, switch to another
+  if (tabId === currentTabId) {
+    const newCurrentTab = tabs[Math.max(0, tabIndex - 1)];
+    currentTabId = newCurrentTab.id;
+    if (editor) {
+      editor.setValue(newCurrentTab.content);
+    }
+  }
+
+  renderTabs();
+}
+
+function updateFilenameInput() {
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  if (currentTab) {
+    document.getElementById('filenameInput').value = currentTab.name;
+  }
+}
+
+// Update tab name when filename changes
+document.getElementById('filenameInput').addEventListener('change', (e) => {
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  if (currentTab) {
+    currentTab.name = e.target.value || 'untitled.c';
+    renderTabs();
+  }
+});
+
+/* ==========================================================
+   Monaco Editor setup
+========================================================== */
 require.config({
   paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
 });
 
 require(["vs/editor/editor.main"], () => {
   editor = monaco.editor.create(document.getElementById("editor"), {
-    value: `#include <stdio.h>
-
-int main() {
-  printf("Hello from C!\\n");
-  return 0;
-}
-`,
+    value: tabs[0].content,
     language: "c",
     theme: "vs-dark",
     fontSize: 14,
@@ -108,6 +304,7 @@ int main() {
   });
 
   runBtn.disabled = false;
+  saveBtn.disabled = false;
   status("Editor ready. Press Compile & Run.");
 });
 
@@ -115,6 +312,7 @@ int main() {
    UI wiring
 ========================================================== */
 const runBtn = document.getElementById("runBtn");
+const saveBtn = document.getElementById("saveBtn");
 const exampleBtn = document.getElementById("exampleBtn");
 const outputEl = document.getElementById("output");
 const statusEl = document.getElementById("status");
@@ -126,7 +324,50 @@ function out(msg="", className=""){
 }
 
 /* ==========================================================
-   2) Run button -> Wandbox API
+   Save to local folder
+========================================================== */
+saveBtn.addEventListener("click", async () => {
+  if (!editor) return;
+
+  const currentTab = tabs.find(t => t.id === currentTabId);
+  const filename = document.getElementById('filenameInput').value || 'untitled.c';
+  const content = editor.getValue();
+
+  // Update tab content and name
+  currentTab.content = content;
+  currentTab.name = filename;
+  renderTabs();
+
+  status("Saving...");
+  saveBtn.disabled = true;
+
+  try {
+    const response = await fetch('/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: filename,
+        content: content
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      status(`Saved: ${result.path}`);
+      setTimeout(() => status("Ready."), 2000);
+    } else {
+      status(`Save failed: ${result.error}`);
+    }
+  } catch (e) {
+    status(`Save error: ${e.message}`);
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+
+/* ==========================================================
+   Run button -> Wandbox API
 ========================================================== */
 runBtn.addEventListener("click", async () => {
   out("Compiling and running...");
@@ -174,7 +415,7 @@ runBtn.addEventListener("click", async () => {
 });
 
 /* ==========================================================
-   3) Example loader
+   Example loader
 ========================================================== */
 exampleBtn.addEventListener("click", () => {
   const ex = `#include <stdio.h>
