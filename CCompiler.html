@@ -310,16 +310,28 @@ async function runWasmProgram(wasmBytes) {
       env: {},
     };
 
+    // Track if we need to create memory
+    let memory = null;
+
     // Provide imports based on what the module needs
     for (const imp of imports) {
       if (imp.module === "env") {
         if (imp.name === "memory" && imp.kind === "memory") {
-          // Create and provide shared memory (required by Wasmer)
-          importObject.env.memory = new WebAssembly.Memory({
-            initial: 256,
-            maximum: 256,
-            shared: true
-          });
+          // Create and provide memory (try shared first, fallback to non-shared)
+          try {
+            memory = new WebAssembly.Memory({
+              initial: 256,
+              maximum: 256,
+              shared: true
+            });
+          } catch (e) {
+            // Fallback to non-shared memory if shared fails
+            memory = new WebAssembly.Memory({
+              initial: 256,
+              maximum: 256
+            });
+          }
+          importObject.env.memory = memory;
         } else if (imp.kind === "function") {
           // Provide stub function for any env functions
           importObject.env[imp.name] = (...args) => {
@@ -351,6 +363,11 @@ async function runWasmProgram(wasmBytes) {
 
     // 实例化
     const instance = await WebAssembly.instantiate(module, importObject);
+
+    // Get memory from instance if it wasn't imported
+    if (!memory && instance.exports.memory) {
+      memory = instance.exports.memory;
+    }
 
     // 启动 WASI 程序
     wasi.start(instance);
