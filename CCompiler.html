@@ -294,19 +294,40 @@ async function runWasmProgram(wasmBytes) {
     // Create WASI instance
     const wasi = new WASI([], [], [stdoutFile, stderrFile]);
 
-    // Compile and instantiate the WASM module
+    // Compile the WASM module
     const module = await WebAssembly.compile(bytes);
 
-    // Create memory for the WASM module (64 pages = 4MB initial, 256 pages = 16MB max)
-    const memory = new WebAssembly.Memory({ initial: 64, maximum: 256 });
+    // Check what imports the module needs
+    const imports = WebAssembly.Module.imports(module);
 
-    const instance = await WebAssembly.instantiate(module, {
+    // Build import object
+    const importObject = {
       wasi_snapshot_preview1: wasi.wasiImport,
       wasix_32v1: wasi.wasiImport,  // Wasmer uses WASIX, map it to standard WASI
-      env: {
-        memory: memory,  // Provide memory to the WASM module
-      },
-    });
+      env: {},
+    };
+
+    // Provide imports based on what the module needs
+    for (const imp of imports) {
+      if (imp.module === "env") {
+        if (imp.name === "memory" && imp.kind === "memory") {
+          // Create and provide memory
+          importObject.env.memory = new WebAssembly.Memory({
+            initial: 256,
+            maximum: 256
+          });
+        } else if (imp.kind === "function") {
+          // Provide stub function for any env functions
+          importObject.env[imp.name] = (...args) => {
+            console.warn(`Called stub function: env.${imp.name}`, args);
+            return 0;
+          };
+        }
+      }
+    }
+
+    // Instantiate with the import object
+    const instance = await WebAssembly.instantiate(module, importObject);
 
     // Start the WASI program
     wasi.start(instance);
