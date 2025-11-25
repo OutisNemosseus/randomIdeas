@@ -296,10 +296,16 @@ async function runWasmProgram(wasmBytes) {
 
     // Compile and instantiate the WASM module
     const module = await WebAssembly.compile(bytes);
+
+    // Create memory for the WASM module (64 pages = 4MB initial, 256 pages = 16MB max)
+    const memory = new WebAssembly.Memory({ initial: 64, maximum: 256 });
+
     const instance = await WebAssembly.instantiate(module, {
       wasi_snapshot_preview1: wasi.wasiImport,
       wasix_32v1: wasi.wasiImport,  // Wasmer uses WASIX, map it to standard WASI
-      env: {},  // Provide empty env module for any remaining imports
+      env: {
+        memory: memory,  // Provide memory to the WASM module
+      },
     });
 
     // Start the WASI program
