@@ -1,0 +1,60 @@
+.app {
+  min-height: 100vh;
+}
+
+/* Program Page */
+.program-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.program-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.program-header h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.program-header .subtitle {
+  font-size: 16px;
+  opacity: 0.9;
+  margin-top: 8px;
+}
+
+.back-link {
+  display: inline-block;
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  margin-bottom: 15px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.back-link:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-4px);
+  text-decoration: none;
+}
+
+.program-not-found {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.program-not-found h2 {
+  color: #e74c3c;
+  margin-bottom: 20px;
+}
+
+.program-not-found .back-link {
+  color: #3498db;
+  background: #e8f4f8;
+}
