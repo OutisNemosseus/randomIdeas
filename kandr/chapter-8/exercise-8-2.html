@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exercise 8.2: Syscalls - K&R C Programming</title>
+
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      height: 100vh; display: flex; flex-direction: column;
+      background: #0b1020; color: #e5e7eb;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0f172a;
+    }
+    header h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    header .breadcrumb {
+      font-size: 0.9rem; color: #9ca3af;
+      margin-left: auto;
+    }
+    header .breadcrumb a {
+      color: #60a5fa; text-decoration: none;
+    }
+    header .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    button {
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      border: 1px solid #334155; background: #111827; color: #e5e7eb;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:hover { background: #1f2937; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .main {
+      flex: 1; display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      min-height: 0;
+    }
+    #editor { height: 100%; }
+    .right {
+      border-left: 1px solid #1f2937;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel {
+      padding: 0.6rem 0.8rem; border-bottom: 1px solid #1f2937;
+      background: #0b1224; font-size: 0.9rem;
+    }
+    #status { color: #9ca3af; }
+    #output {
+      flex: 1; padding: 0.8rem; margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem; white-space: pre-wrap; overflow: auto;
+      background: #050814;
+    }
+    .success { color: #4ade80; }
+    .error { color: #fca5a5; }
+
+    footer {
+      padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #9ca3af;
+      border-top: 1px solid #1f2937; background: #0f172a;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Exercise 8.2: Syscalls</h1>
+    <button id="runBtn" disabled>▶ Compile & Run</button>
+    <span id="status">Loading editor…</span>
+    <div class="breadcrumb">
+      <a href="../index.html">K&R Exercises</a> /
+      <a href="index.html">Chapter 8</a> /
+      Exercise 8.2
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="editor"></div>
+
+    <div class="right">
+      <div class="panel">Output</div>
+      <pre id="output">Click "Compile & Run" to execute your code...</pre>
+    </div>
+  </div>
+
+  <footer>
+    K&R C Programming Language Exercises • Wandbox API • Monaco Editor
+  </footer>
+
+<script>
+let editor = null;
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: `#include <fcntl.h>
+#include "syscalls.h"
+
+#define PERMISSIONS 0666 // RW for owners, group, others
+
+FILE _io_buffer[MAX_NR_OF_OPEN_FILES] = {
+    {0, (char *)0, (char *)0, {1, 0, 0, 0, 0}, 0}, // stdin
+    {0, (char *)0, (char *)0, {0, 1, 0, 0, 0}, 1}, // stdout
+    {0, (char *)0, (char *)0, {0, 1, 1, 0, 0}, 2}  // stderr
+};
+
+void *malloc(long unsigned int size);
+long int lseek(int file_descriptor, long int offset, int whence);
+long int read(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+long int write(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+
+int _fill_buffer(FILE *file_p)
+{
+  int buffer_size;
+
+  if (file_p->flag._READ == 0 || file_p->flag._EOF == 1 || file_p->flag._ERR == 1)
+  {
+    return EOF;
+  }
+
+  buffer_size = (file_p->flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  if (file_p->base == NULL)
+  {
+    if ((file_p->base = (char *)malloc(buffer_size)) == NULL)
+    {
+      return EOF;
+    }
+  }
+
+  file_p->next_char_pos_p = file_p->base;
+  file_p->counter = read(file_p->file_descriptor, file_p->next_char_pos_p, buffer_size);
+
+  if (--file_p->counter < 0)
+  {
+    if (file_p->counter == -1)
+    {
+      file_p->flag._EOF = 1;
+    }
+    else
+    {
+      file_p->flag._ERR = 1;
+    }
+
+    file_p->counter = 0;
+    return EOF;
+  }
+
+  return (unsigned char)*file_p->next_char_pos_p++;
+}
+
+FILE *file_open(char *name, char *mode)
+{
+  int file_descriptor;
+  FILE *file_p;
+
+  if (*mode != 'r' && *mode != 'w' && *mode != 'a')
+  {
+    return NULL;
+  }
+
+  for (file_p = _io_buffer; file_p < _io_buffer + MAX_NR_OF_OPEN_FILES; ++file_p)
+  {
+    if (file_p->flag._READ == 0 && file_p->flag._WRITE == 0)
+    {
+      break; // found free slot
+    }
+  }
+
+  if (file_p >= _io_buffer + MAX_NR_OF_OPEN_FILES)
+  {
+    return NULL; // no free slots
+  }
+
+  if (*mode == 'w')
+  {
+    file_descriptor = creat(name, PERMISSIONS);
+  }
+  else if (*mode == 'a')
+  {
+    if ((file_descriptor = open(name, O_WRONLY, 0)) == -1)
+    {
+      file_descriptor = creat(name, PERMISSIONS);
+    }
+    lseek(file_descriptor, 0L, 2);
+  }
+  else
+  {
+    file_descriptor = open(name, O_RDONLY, 0);
+  }
+
+  if (file_descriptor == -1)
+  {
+    return NULL; // couldn't access name
+  }
+
+  file_p->file_descriptor = file_descriptor;
+  file_p->counter = 0;
+  file_p->base = NULL;
+  file_p->flag._EOF = 0;
+  file_p->flag._ERR = 0;
+  file_p->flag._READ = (*mode == 'r') ? 1 : 0;
+  file_p->flag._WRITE = (*mode == 'r') ? 0 : 1;
+
+  return file_p;
+}
+
+int main(void)
+{
+  FILE *file_p;
+
+  if ((file_p = file_open("syscalls.c", "r")) == NULL)
+  {
+    write(1, "Error: could not open the file.\\n", 33);
+    return EXIT_FAILURE;
+  }
+  else
+  {
+    char c;
+    while ((c = getc(file_p)) != EOF)
+    {
+      write(1, &c, 1);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+// NOTE: Using bit fields leads to more verbose syntax. However, it's more readable.
+`,
+    language: "c",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true
+  });
+
+  runBtn.disabled = false;
+  status("Editor ready. Press Compile & Run.");
+});
+
+const runBtn = document.getElementById("runBtn");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+
+function status(msg){ statusEl.textContent = msg; }
+function out(msg="", className=""){
+  outputEl.textContent = msg;
+  outputEl.className = className;
+}
+
+runBtn.addEventListener("click", async () => {
+  out("Compiling and running...");
+  status("Running...");
+  runBtn.disabled = true;
+
+  const code = editor.getValue();
+
+  try {
+    const response = await fetch('https://wandbox.org/api/compile.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        compiler: 'gcc-head',
+        code: code,
+        options: 'warning,gnu++1y',
+        stdin: '',
+        'compiler-option-raw': '-lm'
+      })
+    });
+
+    const result = await response.json();
+
+    let outputText = '';
+    if (result.program_output) {
+      outputText += '✅ Output:\n' + result.program_output;
+    }
+    if (result.program_error) {
+      outputText += '\n⚠️ Errors:\n' + result.program_error;
+    }
+    if (result.compiler_error) {
+      outputText += '\n❌ Compile Error:\n' + result.compiler_error;
+    }
+
+    out(outputText || '✅ Program completed successfully (no output)',
+        result.compiler_error ? 'error' : 'success');
+    status(result.compiler_error ? "Compile error." : "Run complete.");
+
+  } catch (e) {
+    out('❌ Error: ' + (e.message || String(e)), 'error');
+    status("Error.");
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

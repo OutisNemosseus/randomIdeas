@@ -1,0 +1,3844 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>K&R 2e Solutions - Chapter 5</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f172a;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1020 40%, #0b1020 100%);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--accent); }
+    .card h3 { margin: 12px 0 6px; font-size: 16px; color: var(--accent2); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    pre {
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    a { color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <h1>Chapter 5 ? C solutions</h1>
+    <p class="subtitle">Each exercise folder from the repository, with its C source displayed inline.</p>
+    <div class="nav">
+      <a href="kandr-index.html">? Back to index</a>
+      <a href="kandr-chapter-1.html">Chapter 1</a>
+      <a href="kandr-chapter-2.html">Chapter 2</a>
+      <a href="kandr-chapter-3.html">Chapter 3</a>
+      <a href="kandr-chapter-4.html">Chapter 4</a>
+      <a href="kandr-chapter-6.html">Chapter 6</a>
+      <a href="kandr-chapter-7.html">Chapter 7</a>
+      <a href="kandr-chapter-8.html">Chapter 8</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Exercise 5.01</h2>
+      <p class="meta">chapter_5\exercise_5_01</p>
+      <h3>getint.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAXLEN 1000
+#define BUFFSIZE 100
+
+void printbuf(void);
+int getch(void);
+void ungetch(int c);
+int getint(int *pn);
+
+int main(void)
+{
+  int number = 0;
+
+  getint(&amp;number);
+  printf(&quot;%d\n&quot;, number);
+
+  printbuf();
+
+  return 0;
+}
+
+int bufp = 0;
+int buf[BUFFSIZE];
+
+void printbuf(void)
+{
+  if (bufp)
+  {
+    printf(&quot;Buffer: [ &quot;);
+
+    int i;
+    for (i = bufp - 1; i &gt;= 0; --i)
+    {
+      if (i)
+      {
+        printf(&quot;&#x27;%c&#x27;, &quot;, buf[i] != &#x27;\n&#x27; ? buf[i] : &#x27;.&#x27;);
+      }
+      else
+      {
+        printf(&quot;&#x27;%c&#x27; &quot;, buf[i] != &#x27;\n&#x27; ? buf[i] : &#x27;.&#x27;);
+      }
+    }
+
+    printf(&quot;]\n&quot;);
+  }
+}
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+int getint(int *pn)
+{
+  int c, sign;
+
+  while (isspace(c = getch()))
+    ;
+
+  if (!isdigit(c) &amp;&amp; c != EOF &amp;&amp; c != &#x27;+&#x27; &amp;&amp; c != &#x27;-&#x27;)
+  {
+    ungetch(c);
+    return 0;
+  }
+
+  sign = (c == &#x27;-&#x27;) ? -1 : 1;
+
+  if (c == &#x27;+&#x27; || c == &#x27;-&#x27;)
+  {
+    if (!isdigit(c = getch()))
+    {
+      ungetch(c);
+      ungetch(sign == 1 ? &#x27;+&#x27; : &#x27;-&#x27;);
+      return 0;
+    }
+  }
+
+  for (*pn = 0; isdigit(c); c = getch())
+  {
+    *pn = 10 * *pn + (c - &#x27;0&#x27;);
+  }
+
+  *pn = *pn * sign;
+
+  if (c != EOF)
+  {
+    ungetch(c);
+  }
+
+  return c;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.02</h2>
+      <p class="meta">chapter_5\exercise_5_02</p>
+      <h3>getfloat.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;ctype.h&gt;
+#include &lt;math.h&gt;
+
+#define MAXLEN 1000
+#define BUFFSIZE 100
+
+int getch(void);
+void ungetch(int c);
+int getfloat(float *pn);
+
+int main(void)
+{
+  float number = 0.0;
+
+  getfloat(&amp;number);
+  printf(&quot;number: %f\n&quot;, number);
+
+  return 0;
+}
+
+int bufp = 0;
+int buf[BUFFSIZE];
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+int getfloat(float *pn)
+{
+  int c, sign;
+
+  while (isspace(c = getch()))
+    ;
+
+  if (!isdigit(c) &amp;&amp; c != EOF &amp;&amp; c != &#x27;+&#x27; &amp;&amp; c != &#x27;-&#x27; &amp;&amp; c != &#x27;.&#x27;)
+  {
+    ungetch(c);
+    return 0;
+  }
+
+  sign = (c == &#x27;-&#x27;) ? -1 : 1;
+
+  if (c == &#x27;+&#x27; || c == &#x27;-&#x27;)
+  {
+    if (!isdigit(c = getch()))
+    {
+      ungetch(c);
+      ungetch(sign == 1 ? &#x27;+&#x27; : &#x27;-&#x27;);
+      return 0;
+    }
+  }
+
+  for (*pn = 0; isdigit(c); c = getch())
+  {
+    *pn = 10 * *pn + (c - &#x27;0&#x27;);
+  }
+
+  if (c == &#x27;.&#x27;)
+  {
+    int i;
+    for (i = 1; (c = getch()) &amp;&amp; isdigit(c); ++i)
+    {
+      *pn += (c - &#x27;0&#x27;) / (pow(10, i));
+    }
+  }
+
+  *pn = *pn * sign;
+
+  if (c != EOF)
+  {
+    ungetch(c);
+  }
+
+  return c;
+}
+
+// NOTE: The getfloat() function should return an integer like getint().
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.03</h2>
+      <p class="meta">chapter_5\exercise_5_03</p>
+      <h3>strcat.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+void strcat_ptr(char *s, char *t);
+
+int main(void)
+{
+  char s[100] = &quot;This is the first string&quot;;
+  char t[] = &quot;, this second string!&quot;;
+
+  strcat_ptr(s, t);
+
+  puts(s);
+
+  return 0;
+}
+
+// Concatenate t to end of s; s must be big enough.
+void strcat_ptr(char *s, char *t)
+{
+  // Find the end of s
+  while (*s)
+      ++s;
+
+  // copy t to the end of s
+  while (*s++ = *t++)
+    ;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.04</h2>
+      <p class="meta">chapter_5\exercise_5_04</p>
+      <h3>strend.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+int strend(char *s, char *t);
+
+int main(void)
+{
+  char *s = &quot;This si a simple string&quot;;
+  char *t1 = &quot;string&quot;;
+  char *t2 = &quot;random string&quot;;
+
+  // Test if the string t1 occurs at the end of string s.
+  if (strend(s, t1))
+    puts(&quot;The string t1 orrurs at the end of the string s.&quot;);
+  else
+    puts(&quot;The string t1 doesn&#x27;t orrur at the end of the string s.&quot;);
+
+  // Test if the string t2 occurs at the end of string s.
+  if (strend(s, t2))
+    puts(&quot;The string t2 orrurs at the end of the string s.&quot;);
+  else
+    puts(&quot;The string t2 doesn&#x27;t orrur at the end of the string s.&quot;);
+
+  return 0;
+}
+
+//  Returns 1 if the string t occurs at the end of the string s, and zero otherwise.
+int strend(char *s, char *t)
+{
+  // Determine the lengths of the strings.
+  size_t s_length = strlen(s);
+  size_t t_length = strlen(t);
+
+  // Move the s &amp; t pointer to the end of the corresponding strings.
+  s += s_length - 1;
+  t += t_length - 1;
+
+  // Check backwards if each character from string t occurs in the corresonding
+  // location from the string s.
+  while (*s-- == *t--)
+    --t_length;
+
+  return !t_length;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.05</h2>
+      <p class="meta">chapter_5\exercise_5_05</p>
+      <h3>strncat.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+void strcat_ptr(char *s, char *t, size_t n);
+
+int main(void)
+{
+  char s[100] = &quot;This is the first string&quot;;
+  char *t = &quot;, this second string!&quot;;
+  size_t nr_chars = 5;
+
+  strcat_ptr(s, t, nr_chars);
+
+  puts(s);
+
+  return 0;
+}
+
+// Concatenate t to end of s; s must be big enough.
+void strcat_ptr(char *s, char *t, size_t n)
+{
+  // Find the end of s
+  size_t s_length = strlen(s);
+
+  // Move the s pointer to the end of the s string.
+  s += s_length;
+
+  // copy t to the end of s
+  while ((*s++ = *t++) != &#x27;\0&#x27; &amp;&amp; n--)
+    ;
+}
+
+      </code></pre>
+      <h3>strncmp.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int strcmp_ptr(char *s, char *t, size_t n);
+
+int main(void)
+{
+  char s[100] = &quot;This is the first string&quot;;
+  char *t = &quot;This is the second string&quot;;
+  size_t nr_chars = 13;
+
+  int is_equal = strcmp_ptr(s, t, nr_chars);
+
+  if (is_equal == 0)
+  {
+    puts(&quot;String s is equal with string t.&quot;);
+  }
+  else if (is_equal &gt; 0)
+  {
+    puts(&quot;String s contains more chars than string t.&quot;);
+  }
+  else if (is_equal &lt; 0)
+  {
+    puts(&quot;String s contains less chars than string t.&quot;);
+  }
+
+  return 0;
+}
+
+// Return &lt;0 if s&lt;t, 0 if s==t, &gt;0 if s&gt;t *1
+int strcmp_ptr(char *s, char *t, size_t n)
+{
+  while ((*s == *t) &amp;&amp; --n)
+  {
+    if (*s == &#x27;\0&#x27;)
+      return 0;
+
+    ++s;
+    ++t;
+  }
+
+  // If the s string contains more characters than t, then the t char will
+  // become &#x27;\0&#x27; before s char. If this happen then the s char will be its ascii value and
+  // t char will be 0, so the final result will be s_ascii_value - 0.
+
+  // If the t string contains more character than s, then the s char will
+  // become &#x27;\0&#x27; before t char. If this happen then the s char will be 0 and
+  // t char will be whatever ascii_value is holding, so the final result will be 0 - t_ascii_value.
+
+  return *s - *t;
+}
+
+      </code></pre>
+      <h3>strncpy.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+void strcpy_ptr(char *s, char *t, size_t n);
+
+int main(void)
+{
+  char s[100] = &quot;This is the first string&quot;;
+  char *t = &quot;Test is the second string, that is cool&quot;;
+  size_t nr_chars = 26;
+
+  strcpy_ptr(s, t, nr_chars);
+
+  puts(s);
+
+  return 0;
+}
+
+void strcpy_ptr(char *s, char *t, size_t n)
+{
+  while ((*s++ = *t++) &amp;&amp; --n)
+    ;
+  ;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.06</h2>
+      <p class="meta">chapter_5\exercise_5_06</p>
+      <h3>atoi.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int atoi(const char *s);
+
+int main(void)
+{
+  int i;
+  char *s = &quot;12s3a&quot;;
+
+  i = atoi(s);
+
+  printf(&quot;atoi: %d&quot;, i);
+
+  return 0;
+}
+
+int atoi(const char *s)
+{
+  int i = 0;
+
+  while (*s != &#x27;\0&#x27; &amp;&amp; *s &gt; &#x27;0&#x27; &amp;&amp; *s &lt; &#x27;9&#x27;)
+  {
+    i = i * 10 + *s - &#x27;0&#x27;;
+    ++s;
+  }
+
+  return i;
+}
+
+      </code></pre>
+      <h3>getline.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+void get_line(char *s);
+
+int main(void)
+{
+  char string[150] = &quot;&quot;;
+
+  get_line(string);
+  puts(string);
+
+  return 0;
+}
+
+void get_line(char *s)
+{
+  while ((*s = getchar()) != EOF &amp;&amp; (*s != &#x27;\n&#x27;))
+  {
+    ++s;
+  }
+
+  *s = &#x27;\0&#x27;;
+}
+
+      </code></pre>
+      <h3>getop.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;ctype.h&gt;
+
+#define NUMBER 0
+
+int getop(char *s);
+
+int main(void)
+{
+  char s[100] = &quot;&quot;;
+
+  int type = getop(s);
+
+  printf(&quot;%d &quot;, type);
+  puts(s);
+
+  return 0;
+}
+
+int getop(char *s)
+{
+  char c;
+
+  // Skip blanks (spaces and tabs)
+  while ((*s = c = getchar()) == &#x27; &#x27; || c == &#x27;\t&#x27;)
+    ;
+
+  *(s + 1) = &#x27;\0&#x27;;
+
+  // Not a number
+  if (!isdigit(c) &amp;&amp; c != &#x27;.&#x27;)
+    return c;
+
+  // Collect the integer part
+  if (isdigit(c) &amp;&amp; c != &#x27;.&#x27;)
+    while (isdigit(*(++s) = c = getchar()))
+      ;
+
+  // Collect the fraction part
+  if (c == &#x27;.&#x27;)
+  {
+    while (isdigit(*(++s) = c = getchar()))
+      ;
+  }
+
+  if (c != EOF)
+    ungetc(c, stdin);
+
+  *s = &#x27;\0&#x27;;
+
+  return NUMBER;
+}
+
+      </code></pre>
+      <h3>itoa.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+void reverse(char *s);
+void itoa(char *s, int n);
+
+int main(void)
+{
+  int i = 1234;
+  char s[100] = &quot;&quot;;
+
+  itoa(s, i);
+
+  printf(&quot;itoa: %s\n&quot;, s);
+
+  return 0;
+}
+
+void reverse(char *s)
+{
+  char *t = s + strlen(s) - 1;
+  char aux = 0;
+
+  if (*s == &#x27;\0&#x27;)
+    return;
+
+  while (s &lt; t)
+  {
+    aux = *t;
+    *t-- = *s;
+    *s++ = aux;
+  }
+}
+
+void itoa(char *s, int n)
+{
+  char *t = s;
+
+  while (n)
+  {
+    *(t++) = n % 10 + &#x27;0&#x27;;
+    n /= 10;
+  }
+
+  *t = &#x27;\0&#x27;;
+
+  reverse(s);
+}
+
+      </code></pre>
+      <h3>reverse.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+void reverse(char *s);
+
+int main(void)
+{
+  char s[100] = &quot;test&quot;;
+
+  reverse(s);
+  puts(s);
+
+  return 0;
+}
+
+void reverse(char *s)
+{
+  char *t = s + strlen(s) - 1;
+  char aux = 0;
+
+  if (*s == &#x27;\0&#x27;)
+    return;
+
+  while (s &lt; t)
+  {
+    aux = *t;
+    *t-- = *s;
+    *s++ = aux;
+  }
+}
+
+      </code></pre>
+      <h3>strindex.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int strindex(char *s, char *t);
+
+int main(void)
+{
+  char s[] = &quot;this is first string&quot;;
+  char t[] = &quot;this&quot;;
+
+  printf(&quot;%d&quot;, strindex(s, t));
+
+  return 0;
+}
+
+int strindex(char *s, char *t)
+{
+  char *first;
+  char *second;
+  int pos = 0;
+
+  while (*s != &#x27;\0&#x27;)
+  {
+    if (*s == *t)
+    {
+      first = s;
+      second = t;
+
+      while (*first++ == *second++)
+      {
+        if (*second == &#x27;\0&#x27;)
+          return pos;
+      }
+    }
+    pos++;
+    s++;
+  }
+
+  return -1;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.07</h2>
+      <p class="meta">chapter_5\exercise_5_07</p>
+      <h3>readlines.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#define MAXLINES 5000 // max # of lines to be sorted
+#define MAXLEN 1000
+#define MAXSTORE 10000 // max # of chars from all lines to be stored
+
+char *line_ptr[MAXLINES]; // pointers to text lines
+
+size_t get_line(char line[], size_t max_line_len);
+
+int readlines(char *line_ptr[], int max_nr_of_lines, char *stored_lines);
+void writelines(char *line_ptr[], int nr_of_lines);
+
+void swap(char *v[], int i, int j);
+void quick_sort(char *line_ptr[], int left, int right);
+
+int main()
+{
+  int nr_of_lines;             // # of input lines read
+  char stored_lines[MAXSTORE]; // # of chars to be stored for all lines
+
+  if ((nr_of_lines = readlines(line_ptr, MAXLINES, stored_lines)) &gt;= 0)
+  {
+    quick_sort(line_ptr, 0, nr_of_lines - 1);
+    printf(&quot;-----\n&quot;);
+    writelines(line_ptr, nr_of_lines);
+    return 0;
+  }
+  else
+  {
+    printf(&quot;Error: input too big to sort.\n&quot;);
+    return 1;
+  }
+}
+
+int readlines(char *line_ptr[], int max_nr_of_lines, char *stored_lines)
+{
+  int len;
+  int nr_of_lines;
+
+  char *p = stored_lines + strlen(stored_lines); // Init p with the first empty position from stored_lines
+  char line[MAXLEN];
+
+  nr_of_lines = 0;
+  while ((len = get_line(line, MAXLEN)) &gt; 0)
+  {
+    // Checking if the current # of lines exceeds the max # of lines that can be stored
+    // Also checking if the max # of chars from the stored_lines buffer is not exceeded
+    if (nr_of_lines &gt;= max_nr_of_lines || stored_lines + MAXSTORE - p &lt; len)
+    {
+      return -1;
+    }
+    else
+    {
+      line[len - 1] = &#x27;\0&#x27;; // Delete newline
+      strcpy(p, line);
+      line_ptr[nr_of_lines++] = p;
+      p += len; // Move p to the next empty position
+    }
+  }
+
+  return nr_of_lines;
+}
+
+void writelines(char *line_ptr[], int nr_of_lines)
+{
+  while (nr_of_lines-- &gt; 0)
+  {
+    printf(&quot;%s\n&quot;, *line_ptr++);
+  }
+}
+
+size_t get_line(char line[], size_t max_line_len)
+{
+  int c;
+  size_t i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getc(stdin)) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+void quick_sort(char *v[], int left, int right)
+{
+  int i;
+  int last;
+
+  // Do nothing if the array contains less than 2 elements
+  if (left &gt;= right)
+  {
+    return;
+  }
+
+  swap(v, left, (left + right) / 2);
+  last = left;
+
+  for (i = left + 1; i &lt;= right; ++i)
+  {
+    if (strcmp(v[i], v[left]) &lt; 0)
+    {
+      swap(v, ++last, i);
+    }
+  }
+
+  swap(v, left, last);
+  quick_sort(v, left, last - 1);
+  quick_sort(v, last + 1, right);
+}
+
+void swap(char *v[], int i, int j)
+{
+  char *temp;
+
+  temp = v[i];
+  v[i] = v[j];
+  v[j] = temp;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.08</h2>
+      <p class="meta">chapter_5\exercise_5_08</p>
+      <h3>date_conversion.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+static char daytab[2][13] = {{0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+                             {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
+
+int day_of_year(int year, int month, int day);
+void month_day(int year, int yearday, int *pmonth, int *pda);
+
+int main(void)
+{
+  int day = day_of_year(2020, 10, 30);
+  printf(&quot;day of the year: %d\n&quot;, day);
+
+  int month_invalid = day_of_year(2020, 13, 1);
+  if (month_invalid == -1)
+  {
+    printf(&quot;Warning: invalid month detected.\n&quot;);
+  }
+
+  int day_invalid = day_of_year(202, 12, 32);
+  if (day_invalid == -2)
+  {
+    printf(&quot;Warning: invalid day detected.\n&quot;);
+  }
+
+  int month;
+  int day_month;
+
+  month_day(2020, 304, &amp;month, &amp;day_month);
+  printf(&quot;month: %d, day: %d\n&quot;, month, day_month);
+
+  month_day(2020, 366, &amp;month, &amp;day_month);
+  printf(&quot;month: %d, day: %d\n&quot;, month, day_month);
+
+  month_day(2020, 367, &amp;month, &amp;day_month);
+  printf(&quot;month: %d, day: %d\n&quot;, month, day_month);
+
+  return 0;
+}
+
+int day_of_year(int year, int month, int day)
+{
+  int leap = (year % 4 == 0 &amp;&amp; year % 100 != 0) || year % 400 == 0;
+
+  // Additional checks for month.
+  if (month &gt; 12)
+  {
+    printf(&quot;Error: a year has 12 months, so please choose a number betweeen 1 and 12.\n&quot;);
+    return -1;
+  }
+
+  // Additional checks for day.
+  if (day &gt; daytab[leap][month])
+  {
+    printf(&quot;Error: the %d month has a maximum of %d days.\n&quot;, month, daytab[leap][month]);
+    return -2;
+  }
+
+  int i;
+  for (i = 1; i &lt; month; i++)
+  {
+    day += daytab[leap][i];
+  }
+
+  return day;
+}
+
+void month_day(int year, int yearday, int *pmonth, int *pda)
+{
+  int leap = (year % 4 == 0 &amp;&amp; year % 100 != 0) || year % 400 == 0;
+
+  // Additional check for yearday.
+  if ((!leap &amp;&amp; yearday &gt; 365) || (leap &amp;&amp; yearday &gt; 366))
+  {
+    // Reset the provided month and day.
+    *pmonth = 0;
+    *pda = 0;
+    printf(&quot;Error: year %d has %d days.\n&quot;, year, leap ? 366 : 365);
+
+    return;
+  }
+
+  int i;
+  for (i = 0; yearday &gt; daytab[leap][i]; i++)
+  {
+    yearday -= daytab[leap][i];
+  }
+
+  *pmonth = i;
+  *pda = yearday;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.09</h2>
+      <p class="meta">chapter_5\exercise_5_09</p>
+      <h3>date_conversion_pointers.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+static char year_month_days[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static char leap_year_month_days[] = {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+static char *daytab[2] = {year_month_days, leap_year_month_days};
+
+int day_of_year(int year, int month, int day);
+void month_day(int year, int yearday, int *pmonth, int *pda);
+
+int main(void)
+{
+  int day = day_of_year(2021, 2, 12);
+  printf(&quot;day of the year: %d\n&quot;, day);
+
+  int month_invalid = day_of_year(2021, 13, 1);
+  if (month_invalid == -1)
+  {
+    printf(&quot;Warning: invalid month detected.\n&quot;);
+  }
+
+  int day_invalid = day_of_year(2021, 12, 32);
+  if (day_invalid == -2)
+  {
+    printf(&quot;Warning: invalid day detected.\n&quot;);
+  }
+
+  int month;
+  int day_month;
+
+  month_day(2021, 43, &amp;month, &amp;day_month);
+  printf(&quot;month: %d, day: %d\n&quot;, month, day_month);
+
+  month_day(2021, 365, &amp;month, &amp;day_month);
+  printf(&quot;month: %d, day: %d\n&quot;, month, day_month);
+
+  month_day(2021, 366, &amp;month, &amp;day_month);
+  printf(&quot;month: %d, day: %d\n&quot;, month, day_month);
+
+  return 0;
+}
+
+int day_of_year(int year, int month, int day)
+{
+  int leap = (year % 4 == 0 &amp;&amp; year % 100 != 0) || year % 400 == 0;
+
+  // Additional checks for month.
+  if (month &gt; 12)
+  {
+    printf(&quot;Error: a year has 12 months, so please choose a number betweeen 1 and 12.\n&quot;);
+    return -1;
+  }
+
+  // Additional checks for day.
+  if (day &gt; daytab[leap][month])
+  {
+    printf(&quot;Error: the %d month has a maximum of %d days.\n&quot;, month, daytab[leap][month]);
+    return -2;
+  }
+
+  int i;
+  for (i = 1; i &lt; month; i++)
+  {
+    day += daytab[leap][i];
+  }
+
+  return day;
+}
+
+void month_day(int year, int yearday, int *pmonth, int *pda)
+{
+  int leap = (year % 4 == 0 &amp;&amp; year % 100 != 0) || year % 400 == 0;
+
+  // Additional check for yearday.
+  if ((!leap &amp;&amp; yearday &gt; 365) || (leap &amp;&amp; yearday &gt; 366))
+  {
+    // Reset the provided month and day.
+    *pmonth = 0;
+    *pda = 0;
+    printf(&quot;Error: year %d has %d days.\n&quot;, year, leap ? 366 : 365);
+
+    return;
+  }
+
+  int i;
+  for (i = 0; yearday &gt; daytab[leap][i]; i++)
+  {
+    yearday -= daytab[leap][i];
+  }
+
+  *pmonth = i;
+  *pda = yearday;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.10</h2>
+      <p class="meta">chapter_5\exercise_5_10</p>
+      <h3>expr.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+
+#define STACK_SIZE 15
+
+unsigned char stack_pointer = 0;
+float stack[STACK_SIZE];
+
+float pop(void);
+void push(float element);
+
+int main(int argc, char *argv[])
+{
+  char Error = 0;
+
+  for (size_t i = 1; i &lt; argc; ++i)
+  {
+    float number = atof(argv[i]);
+
+    if (number || strcmp(argv[i], &quot;0&quot;) == 0)
+    {
+      push(number);
+    }
+    else if (strlen(argv[i]) == 1)
+    {
+      if (stack_pointer &gt;= 2 &amp;&amp; stack_pointer &lt; STACK_SIZE)
+      {
+        float number2 = pop();
+        float number1 = pop();
+
+        char op = *argv[i];
+        switch (op)
+        {
+        case &#x27;+&#x27;:
+          push(number1 + number2);
+          break;
+
+        case &#x27;-&#x27;:
+          push(number1 - number2);
+          break;
+
+        case &#x27;*&#x27;: // This char might require to be escaped when passed as an argument.
+          push(number1 * number2);
+          break;
+
+        case &#x27;/&#x27;:
+          if (number2 == 0)
+          {
+            Error = 4;
+          }
+          else
+          {
+            push(number1 / number2);
+          }
+          break;
+
+        default:
+          Error = 3;
+          break;
+        }
+      }
+      else
+      {
+        Error = 2;
+      }
+    }
+    else
+    {
+      Error = 1;
+    }
+  }
+
+  if (Error)
+  {
+    switch (Error)
+    {
+    case 1:
+      printf(&quot;Error: arguments should be numbers or one of the following mathematical operations: &#x27;+&#x27;, &#x27;-&#x27;, &#x27;*&#x27;, &#x27;/&#x27;.\n&quot;);
+      break;
+
+    case 2:
+      printf(&quot;Error: too many or too few arguments.\n&quot;);
+      break;
+
+    case 3:
+      printf(&quot;Error: invalid operation. use one of the following mathematical operations: &#x27;+&#x27;, &#x27;-&#x27;, &#x27;*&#x27;, &#x27;/&#x27;.\n&quot;);
+      break;
+
+    case 4:
+      printf(&quot;Error: division by zero (NaN).\n&quot;);
+      break;
+
+    default:
+      break;
+    }
+
+    return EXIT_FAILURE;
+  }
+
+  printf(&quot;result: %.3f&quot;, pop());
+
+  return EXIT_SUCCESS;
+}
+
+float pop(void)
+{
+  if (stack_pointer &gt; 0)
+  {
+    return stack[stack_pointer--];
+  }
+
+  printf(&quot;Error: the stack is empty.\n&quot;);
+  return 0;
+}
+
+void push(float element)
+{
+  if (stack_pointer &lt; STACK_SIZE)
+  {
+    stack[++stack_pointer] = element;
+  }
+  else
+  {
+    printf(&quot;Error: the stack is full.\n&quot;);
+  }
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.11</h2>
+      <p class="meta">chapter_5\exercise_5_11</p>
+      <h3>detab.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define DEFAULT_TAB_LENGTH 8
+
+int is_str_uint(char *str);
+int is_tab_stop_arg_list_valid(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
+{
+  if (!is_tab_stop_arg_list_valid(argc, argv))
+  {
+    puts(&quot;Error: invalid tab stop list.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  int c;
+  size_t arg_pos = 1;
+  size_t line_pos = 0;
+  size_t tab_stop = DEFAULT_TAB_LENGTH;
+  size_t nr_of_spaces;
+  size_t nr_of_custom_tab_stops = argc - 1;
+
+  while ((c = getchar()) != EOF)
+  {
+    if (c == &#x27;\t&#x27;)
+    {
+      if (nr_of_custom_tab_stops)
+      {
+        tab_stop = atoi(argv[arg_pos++]);
+        --nr_of_custom_tab_stops;
+      }
+      else if (argc &gt; 1)
+      {
+        tab_stop = 1;
+      }
+
+      nr_of_spaces = tab_stop - line_pos % tab_stop;
+
+      while (nr_of_spaces)
+      {
+        putchar(&#x27; &#x27;);
+        ++line_pos;
+        --nr_of_spaces;
+      }
+    }
+    else
+    {
+      putchar(c);
+      ++line_pos;
+
+      if (c == &#x27;\n&#x27;)
+      {
+        arg_pos = 1;
+        line_pos = 0;
+        nr_of_custom_tab_stops = argc - 1;
+      }
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int is_str_uint(char *str)
+{
+  for (size_t i = 0; i &lt; strlen(str); ++i)
+  {
+    if (!isdigit(str[i]))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int is_tab_stop_arg_list_valid(int argc, char *argv[])
+{
+  for (size_t i = 1; i &lt; argc; ++i)
+  {
+    if (!is_str_uint(argv[i]) || (i &gt; 1 &amp;&amp; atoi(argv[i - 1]) &gt; atoi(argv[i])))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+// NOTE: The current program works in a similar fashion as expand.
+// run: ./detab 4 8 12 16 &lt; file_tabs.txt &gt; file_spaces.txt
+
+      </code></pre>
+      <h3>entab.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define DEFAULT_TAB_LENGTH 8
+
+int is_str_uint(char *str);
+int is_tab_stop_arg_list_valid(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
+{
+  if (!is_tab_stop_arg_list_valid(argc, argv))
+  {
+    puts(&quot;Error: invalid tab stop list.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  int c;
+  size_t arg_pos = 1;
+  size_t line_pos = 0;
+  size_t tab_stop = DEFAULT_TAB_LENGTH;
+  size_t nr_of_spaces = 0;
+  size_t nr_of_custom_tab_stops = argc - 1;
+
+  while ((c = getchar()) != EOF)
+  {
+    ++line_pos;
+
+    if (c == &#x27; &#x27;)
+    {
+      ++nr_of_spaces;
+
+      if (nr_of_custom_tab_stops)
+      {
+        tab_stop = atoi(argv[arg_pos]);
+      }
+      else if (argc &gt; 1)
+      {
+        tab_stop = 1;
+      }
+
+      if (line_pos % tab_stop == 0 &amp;&amp; nr_of_spaces &gt; 1)
+      {
+        putchar(&#x27;\t&#x27;);
+
+        if (nr_of_custom_tab_stops)
+        {
+          ++arg_pos;
+          --nr_of_custom_tab_stops;
+        }
+
+        nr_of_spaces = 0;
+      }
+    }
+    else
+    {
+      while (nr_of_spaces)
+      {
+        putchar(&#x27; &#x27;);
+        --nr_of_spaces;
+      }
+
+      if (c == &#x27;\n&#x27;)
+      {
+        arg_pos = 1;
+        line_pos = 0;
+        nr_of_custom_tab_stops = argc - 1;
+      }
+
+      putchar(c);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int is_str_uint(char *str)
+{
+  for (size_t i = 0; i &lt; strlen(str); ++i)
+  {
+    if (!isdigit(str[i]))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int is_tab_stop_arg_list_valid(int argc, char *argv[])
+{
+  for (size_t i = 1; i &lt; argc; ++i)
+  {
+    if (!is_str_uint(argv[i]) || (i &gt; 1 &amp;&amp; atoi(argv[i - 1]) &gt; atoi(argv[i])))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+// NOTE: The current program works in a similar fashion as unexpand.
+// run: ./entab 4 8 12 16 &gt; file_tabs.txt &lt; file_spaces.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.12</h2>
+      <p class="meta">chapter_5\exercise_5_12</p>
+      <h3>detab.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define DEFAULT_TAB_LENGTH 8
+
+int is_str_uint(char *str);
+int is_arg_list_valid(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
+{
+  if (!is_arg_list_valid(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  int c;
+  size_t arg_pos = 1;
+  size_t line_pos = 0;
+  size_t tab_stop = DEFAULT_TAB_LENGTH;
+  size_t nr_of_spaces;
+  size_t nr_of_custom_tab_stops;
+  size_t initial_nr_of_custom_tab_stops = argc - 1;
+
+  size_t custom_tab_stop = 0;
+  size_t custom_line_pos_start = 0;
+
+  for (size_t i = 1; i &lt; argc; i++)
+  {
+    if (argv[i][0] == &#x27;-&#x27;)
+    {
+      custom_line_pos_start = atoi(argv[i] + 1);
+      --initial_nr_of_custom_tab_stops;
+    }
+    else if (argv[i][0] == &#x27;+&#x27;)
+    {
+      custom_tab_stop = atoi(argv[i] + 1);
+      --initial_nr_of_custom_tab_stops;
+    }
+  }
+
+  nr_of_custom_tab_stops = initial_nr_of_custom_tab_stops;
+
+  while ((c = getchar()) != EOF)
+  {
+    if (c == &#x27;\t&#x27;)
+    {
+      if (nr_of_custom_tab_stops)
+      {
+        tab_stop = atoi(argv[arg_pos++]);
+        --nr_of_custom_tab_stops;
+      }
+      else if (custom_tab_stop)
+      {
+        tab_stop = custom_tab_stop;
+      }
+      else if (initial_nr_of_custom_tab_stops)
+      {
+        tab_stop = 1;
+      }
+
+      if (custom_line_pos_start)
+      {
+        if (line_pos &gt;= custom_line_pos_start)
+        {
+          nr_of_spaces = tab_stop;
+        }
+        else
+        {
+          nr_of_spaces = 1;
+        }
+      }
+      else
+      {
+        nr_of_spaces = tab_stop - line_pos % tab_stop;
+      }
+
+      while (nr_of_spaces)
+      {
+        putchar(&#x27; &#x27;);
+        ++line_pos;
+        --nr_of_spaces;
+      }
+    }
+    else
+    {
+      putchar(c);
+      ++line_pos;
+
+      if (c == &#x27;\n&#x27;)
+      {
+        arg_pos = 1;
+        line_pos = 0;
+        nr_of_custom_tab_stops = initial_nr_of_custom_tab_stops;
+      }
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int is_str_uint(char *str)
+{
+  for (size_t i = 0; i &lt; strlen(str); ++i)
+  {
+    if (!isdigit(str[i]))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int is_arg_list_valid(int argc, char *argv[])
+{
+  for (size_t i = 1; i &lt; argc; ++i)
+  {
+    if (argv[i][0] == &#x27;-&#x27; || argv[i][0] == &#x27;+&#x27;)
+    {
+      if (argc &gt; 3 || !is_str_uint(argv[i] + 1))
+      {
+        return 0;
+      }
+      continue;
+    }
+
+    if (!is_str_uint(argv[i]) || (i &gt; 1 &amp;&amp; atoi(argv[i - 1]) &gt; atoi(argv[i])))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+// NOTE: The current program works in a similar fashion as expand.
+// run: ./detab 4 8 12 16 &lt; file_tabs.txt &gt; file_spaces.txt
+// run: ./detab +8 -2 &lt; file_tabs.txt &gt; file_spaces.txt
+
+      </code></pre>
+      <h3>entab.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define DEFAULT_TAB_LENGTH 8
+
+int is_str_uint(char *str);
+int is_arg_list_valid(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
+{
+  if (!is_arg_list_valid(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  int c;
+  size_t arg_pos = 1;
+  size_t line_pos = 0;
+  size_t tab_stop = DEFAULT_TAB_LENGTH;
+  size_t nr_of_spaces = 0;
+  size_t nr_of_custom_tab_stops;
+  size_t initial_nr_of_custom_tab_stops = argc - 1;
+
+  size_t custom_tab_stop = 0;
+  size_t custom_line_pos_start = 0;
+
+  for (size_t i = 1; i &lt; argc; i++)
+  {
+    if (argv[i][0] == &#x27;-&#x27;)
+    {
+      custom_line_pos_start = atoi(argv[i] + 1);
+      --initial_nr_of_custom_tab_stops;
+    }
+    else if (argv[i][0] == &#x27;+&#x27;)
+    {
+      custom_tab_stop = atoi(argv[i] + 1);
+      --initial_nr_of_custom_tab_stops;
+    }
+  }
+
+  nr_of_custom_tab_stops = initial_nr_of_custom_tab_stops;
+
+  while ((c = getchar()) != EOF)
+  {
+    ++line_pos;
+
+    if (c == &#x27; &#x27;)
+    {
+      ++nr_of_spaces;
+
+      if (nr_of_custom_tab_stops)
+      {
+        tab_stop = atoi(argv[arg_pos]);
+      }
+      else if (custom_tab_stop)
+      {
+        tab_stop = custom_tab_stop;
+      }
+      else if (initial_nr_of_custom_tab_stops)
+      {
+        tab_stop = 1;
+      }
+
+      if ((!custom_line_pos_start &amp;&amp; line_pos % tab_stop == 0 &amp;&amp; nr_of_spaces &gt; 1) ||
+          (custom_line_pos_start &amp;&amp; nr_of_spaces == tab_stop) ||
+          line_pos &lt;= custom_line_pos_start)
+      {
+        putchar(&#x27;\t&#x27;);
+
+        if (nr_of_custom_tab_stops)
+        {
+          ++arg_pos;
+          --nr_of_custom_tab_stops;
+        }
+
+        nr_of_spaces = 0;
+      }
+    }
+    else
+    {
+      while (nr_of_spaces)
+      {
+        putchar(&#x27; &#x27;);
+        --nr_of_spaces;
+      }
+
+      if (c == &#x27;\n&#x27;)
+      {
+        arg_pos = 1;
+        line_pos = 0;
+        nr_of_custom_tab_stops = initial_nr_of_custom_tab_stops;
+      }
+
+      putchar(c);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int is_str_uint(char *str)
+{
+  for (size_t i = 0; i &lt; strlen(str); ++i)
+  {
+    if (!isdigit(str[i]))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int is_arg_list_valid(int argc, char *argv[])
+{
+  for (size_t i = 1; i &lt; argc; ++i)
+  {
+    if (argv[i][0] == &#x27;-&#x27; || argv[i][0] == &#x27;+&#x27;)
+    {
+      if (argc &gt; 3 || !is_str_uint(argv[i] + 1))
+      {
+        return 0;
+      }
+      continue;
+    }
+
+    if (!is_str_uint(argv[i]) || (i &gt; 1 &amp;&amp; atoi(argv[i - 1]) &gt; atoi(argv[i])))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+// NOTE: The current program works in a similar fashion as unexpand.
+// run: ./entab 4 8 12 16 &gt; file_tabs.txt &lt; file_spaces.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.13</h2>
+      <p class="meta">chapter_5\exercise_5_13</p>
+      <h3>tail.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_NR_OF_LINES 5000
+#define DEFAULT_NR_OF_LINES_TO_PRINT 10
+
+#define MAX_LINE_LEN 1000
+#define ALLOC_SIZE 10000
+
+static char alloc_buf[ALLOC_SIZE];
+static char *alloc_p = alloc_buf;
+
+char *alloc(size_t size);
+void afree(char *ptr);
+
+size_t get_line(char line[], size_t max_line_len);
+
+int is_str_uint(char *str);
+int is_arg_list_valid(int argc, char *argv[]);
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines);
+void write_lines(char *line_ptr[], const size_t nr_of_lines_to_print, const size_t total_nr_of_lines);
+
+int main(int argc, char *argv[])
+{
+  if (!is_arg_list_valid(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  size_t nr_of_lines_to_print = DEFAULT_NR_OF_LINES_TO_PRINT;
+
+  if (argc == 2)
+  {
+    nr_of_lines_to_print = atoi(argv[argc - 1] + 1);
+  }
+
+  size_t total_nr_of_lines;
+  char *line_ptr[MAX_NR_OF_LINES];
+
+  if ((total_nr_of_lines = read_lines(line_ptr, MAX_NR_OF_LINES)) != -1)
+  {
+    write_lines(line_ptr, nr_of_lines_to_print, total_nr_of_lines);
+  }
+  else
+  {
+    puts(&quot;Error: input too large.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int is_str_uint(char *str)
+{
+  for (size_t i = 0; i &lt; strlen(str); ++i)
+  {
+    if (!isdigit(str[i]))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int is_arg_list_valid(int argc, char *argv[])
+{
+  if (argc &gt; 2 || (argc == 2 &amp;&amp; (argv[argc - 1][0] != &#x27;-&#x27; || !is_str_uint(argv[argc - 1] + 1))))
+  {
+    return 0;
+  }
+  return 1;
+}
+
+size_t get_line(char line[], size_t max_line_len)
+{
+  int c;
+  size_t i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getc(stdin)) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines)
+{
+  size_t line_length;
+  size_t nr_of_lines = 0;
+
+  char *current_line = alloc(MAX_LINE_LEN);
+  char *current_line_copy = NULL;
+
+  while ((line_length = get_line(current_line, MAX_LINE_LEN)))
+  {
+    if (nr_of_lines &gt;= max_nr_of_lines || (current_line_copy = alloc(line_length)) == NULL)
+    {
+      return -1;
+    }
+    else
+    {
+      current_line[line_length - 1] = &#x27;\0&#x27;;
+      strcpy(current_line_copy, current_line);
+      line_ptr[nr_of_lines++] = current_line_copy;
+    }
+  }
+
+  afree(current_line);
+
+  return nr_of_lines;
+}
+
+void write_lines(char *line_ptr[], const size_t nr_of_lines_to_print, const size_t total_nr_of_lines)
+{
+  size_t start_pos = 0;
+
+  if (total_nr_of_lines &gt;= nr_of_lines_to_print)
+  {
+    start_pos = total_nr_of_lines - nr_of_lines_to_print;
+  }
+
+  for (size_t i = start_pos; i &lt; total_nr_of_lines; ++i)
+  {
+    puts(line_ptr[i]);
+    afree(line_ptr[i]);
+  }
+}
+
+char *alloc(size_t size)
+{
+  if (alloc_buf + ALLOC_SIZE - alloc_p &gt;= size)
+  {
+    alloc_p += size;
+    return alloc_p - size;
+  }
+
+  return NULL;
+}
+
+void afree(char *ptr)
+{
+  if (ptr &gt;= alloc_buf &amp;&amp; ptr &lt; alloc_buf + ALLOC_SIZE)
+  {
+    alloc_p = ptr;
+  }
+}
+
+// NOTE: run: ./tail -5 &lt; file_in.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.14</h2>
+      <p class="meta">chapter_5\exercise_5_14</p>
+      <h3>sort.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_NR_OF_LINES 5000
+
+#define MAX_LINE_LEN 1000
+#define ALLOC_SIZE 10000
+
+static char alloc_buf[ALLOC_SIZE];
+static char *alloc_p = alloc_buf;
+
+char *alloc(size_t size);
+void afree(char *ptr);
+
+size_t get_line(char line[], size_t max_line_len);
+
+int parse_arg_list(int argc, char *argv[]);
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines);
+void write_lines(char *line_ptr[], const size_t nr_of_lines);
+
+int numcmp(const char *s1, const char *s2);
+int estrcmp(const char *s1, const char *s2);
+void swap(void *v[], size_t i, size_t j);
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *));
+
+int order = 1; // 1 ascendent, -1 descendent
+int (*comp)(const char *, const char *) = estrcmp;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  size_t nr_of_lines;
+  char *line_ptr[MAX_NR_OF_LINES];
+
+  if ((nr_of_lines = read_lines(line_ptr, MAX_NR_OF_LINES)) != -1)
+  {
+    quick_sort((void **)line_ptr, 0, nr_of_lines - 1, (int (*)(void *, void *))comp);
+    write_lines(line_ptr, nr_of_lines);
+  }
+  else
+  {
+    puts(&quot;Error: input too large.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int parse_arg_list(int argc, char *argv[])
+{
+  for (int i = 1; i &lt; argc; ++i)
+  {
+    size_t arg_len = strlen(argv[i]);
+    if (arg_len &gt; 1 &amp;&amp; argv[i][0] == &#x27;-&#x27;)
+    {
+      for (size_t j = 1; j &lt; arg_len; ++j)
+      {
+        switch (argv[i][j])
+        {
+        case &#x27;n&#x27;:
+          comp = numcmp;
+          break;
+
+        case &#x27;r&#x27;:
+          order = -1;
+          break;
+
+        default:
+          return 0;
+          break;
+        }
+      }
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+size_t get_line(char line[], size_t max_line_len)
+{
+  int c;
+  size_t i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getc(stdin)) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines)
+{
+  size_t line_length;
+  size_t nr_of_lines = 0;
+
+  char *current_line = alloc(MAX_LINE_LEN);
+  char *current_line_copy = NULL;
+
+  while ((line_length = get_line(current_line, MAX_LINE_LEN)))
+  {
+    if (nr_of_lines &gt;= max_nr_of_lines || (current_line_copy = alloc(line_length)) == NULL)
+    {
+      return -1;
+    }
+    else
+    {
+      current_line[line_length - 1] = &#x27;\0&#x27;;
+      strcpy(current_line_copy, current_line);
+      line_ptr[nr_of_lines++] = current_line_copy;
+    }
+  }
+
+  afree(current_line);
+
+  return nr_of_lines;
+}
+
+void write_lines(char *line_ptr[], const size_t nr_of_lines)
+{
+  for (size_t i = 0; i &lt; nr_of_lines; ++i)
+  {
+    puts(line_ptr[i]);
+    afree(line_ptr[i]);
+  }
+}
+
+int numcmp(const char *s1, const char *s2)
+{
+  double nr1 = atof(s1);
+  double nr2 = atof(s2);
+
+  if (nr1 &lt; nr2)
+  {
+    return order * -1;
+  }
+  else if (nr1 &gt; nr2)
+  {
+    return order * 1;
+  }
+
+  return 0;
+}
+
+int estrcmp(const char *s1, const char *s2)
+{
+  return order * strcmp(s1, s2);
+}
+
+void swap(void *v[], size_t i, size_t j)
+{
+  void *temp;
+  temp = v[i];
+  v[i] = v[j];
+  v[j] = temp;
+}
+
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *))
+{
+  if ((long)start &gt;= (long)end)
+  {
+    return;
+  }
+
+  swap(v, start, (start + end) / 2);
+
+  size_t last = start;
+  for (size_t i = start + 1; i &lt;= end; ++i)
+  {
+    if ((*comp)(v[i], v[start]) &lt; 0)
+    {
+      swap(v, ++last, i);
+    }
+  }
+
+  swap(v, start, last);
+  quick_sort(v, start, last - 1, comp);
+  quick_sort(v, last + 1, end, comp);
+}
+
+char *alloc(size_t size)
+{
+  if (alloc_buf + ALLOC_SIZE - alloc_p &gt;= size)
+  {
+    alloc_p += size;
+    return alloc_p - size;
+  }
+
+  return NULL;
+}
+
+void afree(char *ptr)
+{
+  if (ptr &gt;= alloc_buf &amp;&amp; ptr &lt; alloc_buf + ALLOC_SIZE)
+  {
+    alloc_p = ptr;
+  }
+}
+
+// NOTE: run: ./sort -nr &lt; file_in.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.15</h2>
+      <p class="meta">chapter_5\exercise_5_15</p>
+      <h3>sort.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_NR_OF_LINES 5000
+
+#define MAX_LINE_LEN 1000
+#define ALLOC_SIZE 10000
+
+static char alloc_buf[ALLOC_SIZE];
+static char *alloc_p = alloc_buf;
+
+char *alloc(size_t size);
+void afree(char *ptr);
+
+size_t get_line(char line[], size_t max_line_len);
+
+int parse_arg_list(int argc, char *argv[]);
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines);
+void write_lines(char *line_ptr[], const size_t nr_of_lines);
+
+int numcmp(const char *s1, const char *s2);
+int estrcmp(const char *s1, const char *s2);
+void swap(void *v[], size_t i, size_t j);
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *));
+
+int order = 1; // 1 ascendent, -1 descendent
+int fold = 0;  // 0 case sensitive, 1 case insensitive
+int (*comp)(const char *, const char *) = estrcmp;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  size_t nr_of_lines;
+  char *line_ptr[MAX_NR_OF_LINES];
+
+  if ((nr_of_lines = read_lines(line_ptr, MAX_NR_OF_LINES)) != -1)
+  {
+    quick_sort((void **)line_ptr, 0, nr_of_lines - 1, (int (*)(void *, void *))comp);
+    write_lines(line_ptr, nr_of_lines);
+  }
+  else
+  {
+    puts(&quot;Error: input too large.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int parse_arg_list(int argc, char *argv[])
+{
+  for (int i = 1; i &lt; argc; ++i)
+  {
+    size_t arg_len = strlen(argv[i]);
+    if (arg_len &gt; 1 &amp;&amp; argv[i][0] == &#x27;-&#x27;)
+    {
+      for (size_t j = 1; j &lt; arg_len; ++j)
+      {
+        switch (argv[i][j])
+        {
+        case &#x27;n&#x27;:
+          comp = numcmp;
+          break;
+
+        case &#x27;f&#x27;:
+          fold = 1;
+          break;
+
+        case &#x27;r&#x27;:
+          order = -1;
+          break;
+
+        default:
+          return 0;
+          break;
+        }
+      }
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+size_t get_line(char line[], size_t max_line_len)
+{
+  int c;
+  size_t i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getc(stdin)) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines)
+{
+  size_t line_length;
+  size_t nr_of_lines = 0;
+
+  char *current_line = alloc(MAX_LINE_LEN);
+  char *current_line_copy = NULL;
+
+  while ((line_length = get_line(current_line, MAX_LINE_LEN)))
+  {
+    if (nr_of_lines &gt;= max_nr_of_lines || (current_line_copy = alloc(line_length)) == NULL)
+    {
+      return -1;
+    }
+    else
+    {
+      current_line[line_length - 1] = &#x27;\0&#x27;;
+      strcpy(current_line_copy, current_line);
+      line_ptr[nr_of_lines++] = current_line_copy;
+    }
+  }
+
+  afree(current_line);
+
+  return nr_of_lines;
+}
+
+void write_lines(char *line_ptr[], const size_t nr_of_lines)
+{
+  for (size_t i = 0; i &lt; nr_of_lines; ++i)
+  {
+    puts(line_ptr[i]);
+    afree(line_ptr[i]);
+  }
+}
+
+int numcmp(const char *s1, const char *s2)
+{
+  double nr1 = atof(s1);
+  double nr2 = atof(s2);
+
+  if (nr1 &lt; nr2)
+  {
+    return order * -1;
+  }
+  else if (nr1 &gt; nr2)
+  {
+    return order * 1;
+  }
+
+  return 0;
+}
+
+int estrcmp(const char *s1, const char *s2)
+{
+  return order * (fold ? strcasecmp(s1, s2) : strcmp(s1, s2));
+}
+
+void swap(void *v[], size_t i, size_t j)
+{
+  void *temp;
+  temp = v[i];
+  v[i] = v[j];
+  v[j] = temp;
+}
+
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *))
+{
+  if ((long)start &gt;= (long)end)
+  {
+    return;
+  }
+
+  swap(v, start, (start + end) / 2);
+
+  size_t last = start;
+  for (size_t i = start + 1; i &lt;= end; ++i)
+  {
+    if ((*comp)(v[i], v[start]) &lt; 0)
+    {
+      swap(v, ++last, i);
+    }
+  }
+
+  swap(v, start, last);
+  quick_sort(v, start, last - 1, comp);
+  quick_sort(v, last + 1, end, comp);
+}
+
+char *alloc(size_t size)
+{
+  if (alloc_buf + ALLOC_SIZE - alloc_p &gt;= size)
+  {
+    alloc_p += size;
+    return alloc_p - size;
+  }
+
+  return NULL;
+}
+
+void afree(char *ptr)
+{
+  if (ptr &gt;= alloc_buf &amp;&amp; ptr &lt; alloc_buf + ALLOC_SIZE)
+  {
+    alloc_p = ptr;
+  }
+}
+
+// NOTE: run: ./sort -f &lt; file_in.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.16</h2>
+      <p class="meta">chapter_5\exercise_5_16</p>
+      <h3>sort.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_NR_OF_LINES 5000
+
+#define MAX_LINE_LEN 1000
+#define ALLOC_SIZE 10000
+
+static char alloc_buf[ALLOC_SIZE];
+static char *alloc_p = alloc_buf;
+
+char *alloc(size_t size);
+void afree(char *ptr);
+
+size_t get_line(char line[], size_t max_line_len);
+
+int parse_arg_list(int argc, char *argv[]);
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines);
+void write_lines(char *line_ptr[], const size_t nr_of_lines);
+
+int numcmp(const char *s1, const char *s2);
+int estrcmp(const char *s1, const char *s2);
+void swap(void *v[], size_t i, size_t j);
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *));
+
+int order = 1;     // 1 ascendent, -1 descendent
+int fold = 0;      // 0 case sensitive, 1 case insensitive
+int directory = 0; // 0 normal, 1 directory
+int (*comp)(const char *, const char *) = estrcmp;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  size_t nr_of_lines;
+  char *line_ptr[MAX_NR_OF_LINES];
+
+  if ((nr_of_lines = read_lines(line_ptr, MAX_NR_OF_LINES)) != -1)
+  {
+    quick_sort((void **)line_ptr, 0, nr_of_lines - 1, (int (*)(void *, void *))comp);
+    write_lines(line_ptr, nr_of_lines);
+  }
+  else
+  {
+    puts(&quot;Error: input too large.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int parse_arg_list(int argc, char *argv[])
+{
+  for (int i = 1; i &lt; argc; ++i)
+  {
+    size_t arg_len = strlen(argv[i]);
+    if (arg_len &gt; 1 &amp;&amp; argv[i][0] == &#x27;-&#x27;)
+    {
+      for (size_t j = 1; j &lt; arg_len; ++j)
+      {
+        switch (argv[i][j])
+        {
+        case &#x27;n&#x27;:
+          comp = numcmp;
+          break;
+
+        case &#x27;f&#x27;:
+          fold = 1;
+          break;
+
+        case &#x27;d&#x27;:
+          directory = 1;
+          break;
+
+        case &#x27;r&#x27;:
+          order = -1;
+          break;
+
+        default:
+          return 0;
+          break;
+        }
+      }
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+size_t get_line(char line[], size_t max_line_len)
+{
+  int c;
+  size_t i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getc(stdin)) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines)
+{
+  size_t line_length;
+  size_t nr_of_lines = 0;
+
+  char *current_line = alloc(MAX_LINE_LEN);
+  char *current_line_copy = NULL;
+
+  while ((line_length = get_line(current_line, MAX_LINE_LEN)))
+  {
+    if (nr_of_lines &gt;= max_nr_of_lines || (current_line_copy = alloc(line_length)) == NULL)
+    {
+      return -1;
+    }
+    else
+    {
+      current_line[line_length - 1] = &#x27;\0&#x27;;
+      strcpy(current_line_copy, current_line);
+      line_ptr[nr_of_lines++] = current_line_copy;
+    }
+  }
+
+  afree(current_line);
+
+  return nr_of_lines;
+}
+
+void write_lines(char *line_ptr[], const size_t nr_of_lines)
+{
+  for (size_t i = 0; i &lt; nr_of_lines; ++i)
+  {
+    puts(line_ptr[i]);
+    afree(line_ptr[i]);
+  }
+}
+
+int numcmp(const char *s1, const char *s2)
+{
+  double nr1 = atof(s1);
+  double nr2 = atof(s2);
+
+  if (nr1 &lt; nr2)
+  {
+    return order * -1;
+  }
+  else if (nr1 &gt; nr2)
+  {
+    return order * 1;
+  }
+
+  return 0;
+}
+
+int estrcmp(const char *s1, const char *s2)
+{
+  while (*s1 != &#x27;\0&#x27; &amp;&amp; *s2 != &#x27;\0&#x27;)
+  {
+    if (directory)
+    {
+      while (*s1 != &#x27;\0&#x27; &amp;&amp; !isalnum(*s1) &amp;&amp; !isspace(*s1))
+      {
+        ++s1;
+      }
+      while (*s2 != &#x27;\0&#x27; &amp;&amp; !isalnum(*s2) &amp;&amp; !isspace(*s2))
+      {
+        ++s2;
+      }
+    }
+
+    int result = fold ? tolower(*s1) - tolower(*s2) : *s1 - *s2;
+    if (result == 0)
+    {
+      ++s1;
+      ++s2;
+    }
+    else
+    {
+      return order * result;
+    }
+  }
+
+  return 0;
+}
+
+void swap(void *v[], size_t i, size_t j)
+{
+  void *temp;
+  temp = v[i];
+  v[i] = v[j];
+  v[j] = temp;
+}
+
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *))
+{
+  if ((long)start &gt;= (long)end)
+  {
+    return;
+  }
+
+  swap(v, start, (start + end) / 2);
+
+  size_t last = start;
+  for (size_t i = start + 1; i &lt;= end; ++i)
+  {
+    if ((*comp)(v[i], v[start]) &lt; 0)
+    {
+      swap(v, ++last, i);
+    }
+  }
+
+  swap(v, start, last);
+  quick_sort(v, start, last - 1, comp);
+  quick_sort(v, last + 1, end, comp);
+}
+
+char *alloc(size_t size)
+{
+  if (alloc_buf + ALLOC_SIZE - alloc_p &gt;= size)
+  {
+    alloc_p += size;
+    return alloc_p - size;
+  }
+
+  return NULL;
+}
+
+void afree(char *ptr)
+{
+  if (ptr &gt;= alloc_buf &amp;&amp; ptr &lt; alloc_buf + ALLOC_SIZE)
+  {
+    alloc_p = ptr;
+  }
+}
+
+// NOTE: run: ./sort -df &lt; file_in.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.17</h2>
+      <p class="meta">chapter_5\exercise_5_17</p>
+      <h3>sort.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+#include &lt;limits.h&gt;
+#include &lt;math.h&gt;
+
+#define MAX_NR_OF_LINES 5000
+
+#define MAX_LINE_LEN 1000
+#define ALLOC_SIZE 10000
+
+#define MAX_NR_OF_FIELDS 100
+#define MAX_NR_OF_FIELD_OPTIONS 4
+
+#define INT_MAX_NR_OF_DIGITS (size_t)(floor(log10(labs(INT_MAX))) + 1)
+
+static char alloc_buf[ALLOC_SIZE];
+static char *alloc_p = alloc_buf;
+
+char *alloc(size_t size);
+void afree(char *ptr);
+
+size_t get_line(char line[], size_t max_line_len);
+
+int parse_arg_list(int argc, char *argv[]);
+
+size_t str_nth_blank_pos(const char *s, size_t n);
+char *substr(const char *s, size_t start, size_t end);
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines);
+void write_lines(char *line_ptr[], const size_t nr_of_lines);
+
+int numcmp(const char *s1, const char *s2);
+int estrcmp(const char *s1, const char *s2);
+int fieldscmp(const char *s1, const char *s2);
+void swap(void *v[], size_t i, size_t j);
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *));
+
+int order = 1;     // 1 ascendent, -1 descendent
+int fold = 0;      // 0 case sensitive, 1 case insensitive
+int directory = 0; // 0 normal, 1 directory
+int (*comp)(const char *, const char *) = estrcmp;
+
+enum field_option
+{
+  INDEX,
+  ORDER,
+  FOLD,
+  DIRECTORY
+};
+
+int nr_of_fields = 0;
+int (*fields_comp[MAX_NR_OF_FIELDS])(const char *, const char *);
+int fields_options[MAX_NR_OF_FIELDS][MAX_NR_OF_FIELD_OPTIONS];
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  size_t nr_of_lines;
+  char *line_ptr[MAX_NR_OF_LINES];
+
+  if ((nr_of_lines = read_lines(line_ptr, MAX_NR_OF_LINES)) != -1)
+  {
+    quick_sort((void **)line_ptr, 0, nr_of_lines - 1, (int (*)(void *, void *))comp);
+    write_lines(line_ptr, nr_of_lines);
+  }
+  else
+  {
+    puts(&quot;Error: input too large.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int parse_arg_list(int argc, char *argv[])
+{
+  for (int i = 1; i &lt; argc; ++i)
+  {
+    size_t arg_len = strlen(argv[i]);
+    if (arg_len &gt; 1 &amp;&amp; argv[i][0] == &#x27;-&#x27;)
+    {
+      for (size_t j = 1; j &lt; arg_len; ++j)
+      {
+        if (isdigit(argv[i][j]) &amp;&amp; !fields_options[i - 1][INDEX])
+        {
+          char field_index_str[INT_MAX_NR_OF_DIGITS];
+
+          size_t k = 0;
+          while (isdigit(argv[i][j]) &amp;&amp; j &lt; arg_len &amp;&amp; k &lt; INT_MAX_NR_OF_DIGITS)
+          {
+            field_index_str[k++] = argv[i][j++];
+          }
+          field_index_str[k] = &#x27;\0&#x27;;
+
+          fields_options[i - 1][INDEX] = atoi(field_index_str);
+
+          --j;
+          ++nr_of_fields;
+        }
+        else
+        {
+          switch (argv[i][j])
+          {
+          case &#x27;n&#x27;:
+            comp = numcmp;
+            break;
+
+          case &#x27;f&#x27;:
+            fold = 1;
+            break;
+
+          case &#x27;d&#x27;:
+            directory = 1;
+            break;
+
+          case &#x27;r&#x27;:
+            order = -1;
+            break;
+
+          default:
+            return 0;
+            break;
+          }
+        }
+      }
+
+      if (nr_of_fields || argc &gt; 2)
+      {
+        if (!fields_options[i - 1][INDEX])
+        {
+          return 0;
+        }
+
+        fields_comp[i - 1] = comp;
+        fields_options[i - 1][ORDER] = order;
+        fields_options[i - 1][FOLD] = fold;
+        fields_options[i - 1][DIRECTORY] = directory;
+
+        comp = estrcmp;
+        order = 1;
+        fold = 0;
+        directory = 0;
+      }
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  if (nr_of_fields &amp;&amp; nr_of_fields == argc - 1)
+  {
+    comp = fieldscmp;
+  }
+  else if (argc &gt; 2)
+  {
+    return 0;
+  }
+
+  return 1;
+}
+
+size_t str_nth_blank_pos(const char *s, size_t n)
+{
+  size_t pos = 0;
+  while (n &amp;&amp; *s != &#x27;\0&#x27;)
+  {
+    if (*s == &#x27; &#x27; || *s == &#x27;\t&#x27;)
+    {
+      do
+      {
+        ++pos;
+        ++s;
+      } while (*s == &#x27; &#x27; || *s == &#x27;\t&#x27;);
+
+      --n;
+    }
+    else
+    {
+      ++pos;
+      ++s;
+    }
+  }
+
+  return pos;
+}
+
+char *substr(const char *s, size_t start, size_t end)
+{
+  if (start &gt; end)
+  {
+    return NULL;
+  }
+
+  const size_t len = end - start;
+  char *dest = alloc(len + 1);
+
+  for (size_t i = start; i &lt; end &amp;&amp; s[i] != &#x27;\0&#x27;; ++i)
+  {
+    *dest = s[i];
+    ++dest;
+  }
+  *dest = &#x27;\0&#x27;;
+
+  return dest - len;
+}
+
+size_t get_line(char line[], size_t max_line_len)
+{
+  int c;
+  size_t i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getc(stdin)) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+size_t read_lines(char *line_ptr[], const size_t max_nr_of_lines)
+{
+  size_t line_length;
+  size_t nr_of_lines = 0;
+
+  char *current_line = alloc(MAX_LINE_LEN);
+  char *current_line_copy = NULL;
+
+  while ((line_length = get_line(current_line, MAX_LINE_LEN)))
+  {
+    if (nr_of_lines &gt;= max_nr_of_lines || (current_line_copy = alloc(line_length)) == NULL)
+    {
+      return -1;
+    }
+    else
+    {
+      current_line[line_length - 1] = &#x27;\0&#x27;;
+      strcpy(current_line_copy, current_line);
+      line_ptr[nr_of_lines++] = current_line_copy;
+    }
+  }
+
+  afree(current_line);
+
+  return nr_of_lines;
+}
+
+void write_lines(char *line_ptr[], const size_t nr_of_lines)
+{
+  for (size_t i = 0; i &lt; nr_of_lines; ++i)
+  {
+    puts(line_ptr[i]);
+    afree(line_ptr[i]);
+  }
+}
+
+int numcmp(const char *s1, const char *s2)
+{
+  double nr1 = atof(s1);
+  double nr2 = atof(s2);
+
+  if (nr1 &lt; nr2)
+  {
+    return order * -1;
+  }
+  else if (nr1 &gt; nr2)
+  {
+    return order * 1;
+  }
+
+  return 0;
+}
+
+int estrcmp(const char *s1, const char *s2)
+{
+  while (*s1 != &#x27;\0&#x27; &amp;&amp; *s2 != &#x27;\0&#x27;)
+  {
+    if (directory)
+    {
+      while (*s1 != &#x27;\0&#x27; &amp;&amp; !isalnum(*s1) &amp;&amp; !isspace(*s1))
+      {
+        ++s1;
+      }
+      while (*s2 != &#x27;\0&#x27; &amp;&amp; !isalnum(*s2) &amp;&amp; !isspace(*s2))
+      {
+        ++s2;
+      }
+    }
+
+    int result = fold ? tolower(*s1) - tolower(*s2) : *s1 - *s2;
+    if (result == 0)
+    {
+      ++s1;
+      ++s2;
+    }
+    else
+    {
+      return order * result;
+    }
+  }
+
+  return 0;
+}
+
+int fieldscmp(const char *s1, const char *s2)
+{
+  int i = 0;
+  while (i &lt; nr_of_fields)
+  {
+    size_t start_s1 = str_nth_blank_pos(s1, fields_options[i][INDEX] - 1);
+    size_t end_s1 = str_nth_blank_pos(s1, fields_options[i][INDEX]);
+    char *field_s1 = substr(s1, start_s1, end_s1);
+
+    size_t start_s2 = str_nth_blank_pos(s2, fields_options[i][INDEX] - 1);
+    size_t end_s2 = str_nth_blank_pos(s2, fields_options[i][INDEX]);
+    char *field_s2 = substr(s2, start_s2, end_s2);
+
+    comp = fields_comp[i];
+    order = fields_options[i][ORDER];
+    fold = fields_options[i][FOLD];
+    directory = fields_options[i][DIRECTORY];
+
+    int comp_result = comp(field_s1, field_s2);
+
+    afree(field_s1);
+    afree(field_s2);
+
+    if (comp_result == 0)
+    {
+      ++i;
+    }
+    else
+    {
+      return comp_result;
+    }
+  }
+
+  return 0;
+}
+
+void swap(void *v[], size_t i, size_t j)
+{
+  void *temp;
+  temp = v[i];
+  v[i] = v[j];
+  v[j] = temp;
+}
+
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *))
+{
+  if ((long)start &gt;= (long)end)
+  {
+    return;
+  }
+
+  swap(v, start, (start + end) / 2);
+
+  size_t last = start;
+  for (size_t i = start + 1; i &lt;= end; ++i)
+  {
+    if ((*comp)(v[i], v[start]) &lt; 0)
+    {
+      swap(v, ++last, i);
+    }
+  }
+
+  swap(v, start, last);
+  quick_sort(v, start, last - 1, comp);
+  quick_sort(v, last + 1, end, comp);
+}
+
+char *alloc(size_t size)
+{
+  if (alloc_buf + ALLOC_SIZE - alloc_p &gt;= size)
+  {
+    alloc_p += size;
+    return alloc_p - size;
+  }
+
+  return NULL;
+}
+
+void afree(char *ptr)
+{
+  if (ptr &gt;= alloc_buf &amp;&amp; ptr &lt; alloc_buf + ALLOC_SIZE)
+  {
+    alloc_p = ptr;
+  }
+}
+
+// NOTE: run: ./sort -3nr -2f &lt; file_in.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.18</h2>
+      <p class="meta">chapter_5\exercise_5_18</p>
+      <h3>dcl.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_TOKEN_LEN 100
+#define MAX_OUT_LEN 1000
+
+void skip_blanks();
+void skip_comments();
+
+void get_name(char *dest, const size_t max_len);
+int get_next_token(void);
+
+void dcl(void);
+void dir_dcl(void);
+
+enum token_type
+{
+  NAME,
+  PARENS,
+  BRACKETS,
+  PAREN_OPEN = &#x27;(&#x27;,
+  PAREN_CLOSE = &#x27;)&#x27;,
+  BRACKET_OPEN = &#x27;[&#x27;,
+  BRACKET_CLOSE = &#x27;]&#x27;
+};
+
+int next_token;
+
+char token[MAX_TOKEN_LEN];
+char name[MAX_TOKEN_LEN];
+char data_type[MAX_TOKEN_LEN];
+char out[MAX_OUT_LEN];
+
+int main(void)
+{
+  while (get_next_token() != EOF)
+  {
+    if (next_token == &#x27;\n&#x27;)
+    {
+      continue;
+    }
+
+    strcpy(data_type, token);
+    out[0] = &#x27;\0&#x27;;
+
+    dcl();
+
+    if (next_token != &#x27;\n&#x27;)
+    {
+      if (next_token == NAME)
+      {
+        printf(&quot;Syntax Error: &#x27;%s&#x27; unexpected.\n&quot;, token);
+      }
+      else
+      {
+        printf(&quot;Syntax Error: &#x27;%c&#x27; unexpected.\n&quot;, next_token);
+      }
+
+      do
+      {
+        get_next_token();
+      } while (next_token != &#x27;\n&#x27; &amp;&amp; next_token != EOF);
+    }
+    else
+    {
+      printf(&quot;%s:%s %s\n&quot;, name, out, data_type);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+void skip_comments()
+{
+  int c = getc(stdin);
+  if (c == &#x27;/&#x27;)
+  {
+    c = getc(stdin);
+    if (c == &#x27;/&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;\n&#x27; &amp;&amp; c != EOF)
+        ;
+    }
+    else if (c == &#x27;*&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;*&#x27; &amp;&amp; c != EOF)
+        ;
+      c = getc(stdin);
+      if (c == &#x27;/&#x27;)
+      {
+        ungetc(&#x27;\n&#x27;, stdin);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void get_name(char *dest, const size_t max_len)
+{
+  int c;
+  size_t i = 0;
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_len)
+  {
+    dest[i++] = c;
+  }
+  dest[i] = &#x27;\0&#x27;;
+  ungetc(c, stdin);
+}
+
+int get_next_token(void)
+{
+  skip_blanks();
+  skip_comments();
+  skip_blanks();
+
+  int c = getc(stdin);
+  if (c == &#x27;(&#x27;)
+  {
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == &#x27;)&#x27;)
+    {
+      strcpy(token, &quot;()&quot;);
+      return next_token = PARENS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = PAREN_OPEN;
+  }
+  else if (c == &#x27;[&#x27;)
+  {
+    skip_blanks();
+    get_name(token, MAX_TOKEN_LEN);
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == &#x27;]&#x27;)
+    {
+      return next_token = BRACKETS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = BRACKET_OPEN;
+  }
+  else if (isalpha(c))
+  {
+    ungetc(c, stdin);
+    get_name(token, MAX_TOKEN_LEN);
+    return next_token = NAME;
+  }
+
+  return next_token = c;
+}
+
+void dcl(void)
+{
+  int nr_of_stars = 0;
+  while (get_next_token() == &#x27;*&#x27;)
+  {
+    ++nr_of_stars;
+  }
+
+  dir_dcl();
+
+  while (nr_of_stars--)
+  {
+    strcat(out, &quot; pointer to&quot;);
+  }
+}
+
+void dir_dcl(void)
+{
+  if (next_token == PAREN_OPEN)
+  {
+    dcl();
+
+    if (next_token != PAREN_CLOSE)
+    {
+      puts(&quot;Syntax Error: missing &#x27;)&#x27;.&quot;);
+    }
+  }
+  else if (next_token == NAME)
+  {
+    strcpy(name, token);
+  }
+  else
+  {
+    puts(&quot;Syntax Error: expected name or (dcl).&quot;);
+  }
+
+  while ((next_token = get_next_token()) == PARENS || next_token == BRACKETS)
+  {
+    if (next_token == PARENS)
+    {
+      strcat(out, &quot; function returning&quot;);
+    }
+    else if (next_token == BRACKETS)
+    {
+      strcat(out, &quot; array[&quot;);
+      strcat(out, token);
+      strcat(out, &quot;] of&quot;);
+    }
+  }
+}
+
+// NOTE: run: ./dcl &lt; test.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.19</h2>
+      <p class="meta">chapter_5\exercise_5_19</p>
+      <h3>undcl.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_TOKEN_LEN 100
+#define MAX_OUT_LEN 1000
+
+void skip_blanks();
+void skip_comments();
+
+void get_name(char *dest, const size_t max_len);
+int get_next_token(void);
+
+enum token_type
+{
+  NAME,
+  PARENS,
+  BRACKETS,
+  PAREN_OPEN = &#x27;(&#x27;,
+  PAREN_CLOSE = &#x27;)&#x27;,
+  BRACKET_OPEN = &#x27;[&#x27;,
+  BRACKET_CLOSE = &#x27;]&#x27;
+};
+
+int next_token;
+
+char token[MAX_TOKEN_LEN];
+char out[MAX_OUT_LEN];
+
+int main(void)
+{
+  char temp[MAX_OUT_LEN + MAX_TOKEN_LEN];
+
+  while (get_next_token() != EOF)
+  {
+    strcpy(out, token);
+
+    while (get_next_token() != &#x27;\n&#x27;)
+    {
+      if (next_token == PARENS)
+      {
+        if (out[0] == &#x27;*&#x27;)
+        {
+          sprintf(temp, &quot;(%s)&quot;, out);
+          strcpy(out, temp);
+        }
+
+        strcat(out, token);
+      }
+      else if (next_token == BRACKETS)
+      {
+        if (out[0] == &#x27;*&#x27;)
+        {
+          sprintf(temp, &quot;(%s)&quot;, out);
+          strcpy(out, temp);
+        }
+
+        sprintf(temp, &quot;[%s]&quot;, token);
+        strcat(out, temp);
+      }
+      else if (next_token == &#x27;*&#x27;)
+      {
+        sprintf(temp, &quot;*%s&quot;, out);
+        strcpy(out, temp);
+      }
+      else if (next_token == NAME)
+      {
+        sprintf(temp, &quot;%s %s&quot;, token, out);
+        strcpy(out, temp);
+      }
+      else
+      {
+        printf(&quot;Syntax Error: Invalid input at %s.\n&quot;, token);
+      }
+    }
+    puts(out);
+  }
+
+  return EXIT_SUCCESS;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+void skip_comments()
+{
+  int c = getc(stdin);
+  if (c == &#x27;/&#x27;)
+  {
+    c = getc(stdin);
+    if (c == &#x27;/&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;\n&#x27; &amp;&amp; c != EOF)
+        ;
+    }
+    else if (c == &#x27;*&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;*&#x27; &amp;&amp; c != EOF)
+        ;
+      c = getc(stdin);
+      if (c == &#x27;/&#x27;)
+      {
+        ungetc(&#x27;\n&#x27;, stdin);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void get_name(char *dest, const size_t max_len)
+{
+  int c;
+  size_t i = 0;
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_len)
+  {
+    dest[i++] = c;
+  }
+  dest[i] = &#x27;\0&#x27;;
+  ungetc(c, stdin);
+}
+
+int get_next_token(void)
+{
+  skip_blanks();
+  skip_comments();
+  skip_blanks();
+
+  int c = getc(stdin);
+  if (c == &#x27;(&#x27;)
+  {
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == &#x27;)&#x27;)
+    {
+      strcpy(token, &quot;()&quot;);
+      return next_token = PARENS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = PAREN_OPEN;
+  }
+  else if (c == &#x27;[&#x27;)
+  {
+    skip_blanks();
+    get_name(token, MAX_TOKEN_LEN);
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == &#x27;]&#x27;)
+    {
+      return next_token = BRACKETS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = BRACKET_OPEN;
+  }
+  else if (isalpha(c))
+  {
+    ungetc(c, stdin);
+    get_name(token, MAX_TOKEN_LEN);
+    return next_token = NAME;
+  }
+
+  return next_token = c;
+}
+
+// NOTE: run: ./undcl &lt; test.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 5.20</h2>
+      <p class="meta">chapter_5\exercise_5_20</p>
+      <h3>dcl.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_TOKEN_LEN 100
+#define MAX_OUT_LEN 1000
+
+void skip_blanks();
+void skip_comments();
+
+void get_name(char *dest, const size_t max_len);
+int get_next_token(void);
+
+int is_valid_qualifier(const char *str);
+int is_valid_data_type(const char *str);
+
+void dcl(void);
+void dir_dcl(void);
+void attr_dcl(void);
+
+enum boolean
+{
+  FALSE,
+  TRUE
+};
+
+enum token_type
+{
+  NAME,
+  PARENS,
+  BRACKETS,
+  PAREN_OPEN = &#x27;(&#x27;,
+  PAREN_CLOSE = &#x27;)&#x27;,
+  BRACKET_OPEN = &#x27;[&#x27;,
+  BRACKET_CLOSE = &#x27;]&#x27;,
+  ATTR_SEPARATOR = &#x27;,&#x27;
+};
+
+size_t line_nr = 0;
+enum boolean Error = FALSE;
+
+int next_token;
+
+char token[MAX_TOKEN_LEN];
+char name[MAX_TOKEN_LEN];
+char data_type[MAX_TOKEN_LEN];
+char out[MAX_OUT_LEN];
+
+char *data_types[] = {
+    &quot;void&quot;,
+    &quot;char&quot;,
+    &quot;short&quot;,
+    &quot;int&quot;,
+    &quot;long&quot;,
+    &quot;float&quot;,
+    &quot;double&quot;,
+    &quot;custom_type&quot;,
+};
+
+int main(void)
+{
+  while (get_next_token() != EOF)
+  {
+    if (next_token == &#x27;\n&#x27;)
+    {
+      ++line_nr;
+      continue;
+    }
+
+    out[0] = &#x27;\0&#x27;;
+
+    if (is_valid_data_type(token))
+    {
+      strcpy(data_type, token);
+    }
+    else
+    {
+      Error = TRUE;
+      printf(&quot;Error: invalid data type &#x27;%s&#x27; on line %zu.\n&quot;, token, line_nr);
+
+      do
+      {
+        get_next_token();
+      } while (next_token != &#x27;\n&#x27; &amp;&amp; next_token != EOF);
+
+      ++line_nr;
+      continue;
+    }
+
+    dcl();
+
+    if (next_token != &#x27;\n&#x27;)
+    {
+      if (next_token == NAME)
+      {
+        printf(&quot;Syntax Error: &#x27;%s&#x27; unexpected on line %zu.\n&quot;, token, line_nr);
+      }
+      else
+      {
+        printf(&quot;Syntax Error: &#x27;%c&#x27; unexpected on line %zu.\n&quot;, next_token, line_nr);
+      }
+
+      do
+      {
+        get_next_token();
+      } while (next_token != &#x27;\n&#x27; &amp;&amp; next_token != EOF);
+    }
+    else if (!Error)
+    {
+      printf(&quot;%s:%s %s\n&quot;, name, out, data_type);
+    }
+
+    Error = FALSE;
+    ++line_nr;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+void skip_comments()
+{
+  int c = getc(stdin);
+  if (c == &#x27;/&#x27;)
+  {
+    c = getc(stdin);
+    if (c == &#x27;/&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;\n&#x27; &amp;&amp; c != EOF)
+        ;
+    }
+    else if (c == &#x27;*&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;*&#x27; &amp;&amp; c != EOF)
+        ;
+      c = getc(stdin);
+      if (c == &#x27;/&#x27;)
+      {
+        ungetc(&#x27;\n&#x27;, stdin);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void get_name(char *dest, const size_t max_len)
+{
+  int c;
+  size_t i = 0;
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_len)
+  {
+    dest[i++] = c;
+  }
+  dest[i] = &#x27;\0&#x27;;
+  ungetc(c, stdin);
+}
+
+int get_next_token(void)
+{
+  skip_blanks();
+  skip_comments();
+  skip_blanks();
+
+  int c = getc(stdin);
+  if (c == &#x27;(&#x27;)
+  {
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == &#x27;)&#x27;)
+    {
+      strcpy(token, &quot;()&quot;);
+      return next_token = PARENS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = PAREN_OPEN;
+  }
+  else if (c == &#x27;[&#x27;)
+  {
+    skip_blanks();
+    get_name(token, MAX_TOKEN_LEN);
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == &#x27;]&#x27;)
+    {
+      return next_token = BRACKETS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = BRACKET_OPEN;
+  }
+  else if (isalpha(c))
+  {
+    ungetc(c, stdin);
+    get_name(token, MAX_TOKEN_LEN);
+    return next_token = NAME;
+  }
+
+  return next_token = c;
+}
+
+int is_valid_qualifier(const char *str)
+{
+  if (strcmp(str, &quot;const&quot;) == 0 || strcmp(str, &quot;volatile&quot;) == 0)
+  {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+int is_valid_data_type(const char *str)
+{
+  size_t nr_of_types = sizeof(data_types) / sizeof(data_types[0]);
+  for (size_t i = 0; i &lt; nr_of_types; ++i)
+  {
+    if (strcmp(data_types[i], str) == 0)
+    {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+void dcl(void)
+{
+  int nr_of_stars = 0;
+  while (get_next_token() == &#x27;*&#x27;)
+  {
+    ++nr_of_stars;
+  }
+
+  dir_dcl();
+
+  while (nr_of_stars--)
+  {
+    strcat(out, &quot; pointer to&quot;);
+  }
+}
+
+void dir_dcl(void)
+{
+  if (next_token == PAREN_OPEN)
+  {
+    dcl();
+
+    if (next_token != PAREN_CLOSE)
+    {
+      Error = TRUE;
+      printf(&quot;Syntax Error: missing &#x27;)&#x27; on line %zu.\n&quot;, line_nr);
+    }
+  }
+  else if (next_token == NAME)
+  {
+    strcpy(name, token);
+  }
+  else
+  {
+    Error = TRUE;
+    printf(&quot;Syntax Error: expected name or (dcl) on line %zu.\n&quot;, line_nr);
+  }
+
+  while ((next_token = get_next_token()) == PARENS || next_token == BRACKETS || next_token == PAREN_OPEN)
+  {
+    if (next_token == PAREN_OPEN)
+    {
+      strcat(out, &quot; function expecting&quot;);
+      attr_dcl();
+      strcat(out, &quot; and returning&quot;);
+
+      if (next_token != PAREN_CLOSE)
+      {
+        Error = TRUE;
+        printf(&quot;Syntax Error: missing &#x27;)&#x27; on line %zu.\n&quot;, line_nr);
+
+        if (next_token == &#x27;\n&#x27;)
+        {
+          return;
+        }
+      }
+    }
+    else if (next_token == PARENS)
+    {
+      strcat(out, &quot; function returning&quot;);
+    }
+    else if (next_token == BRACKETS)
+    {
+      strcat(out, &quot; array[&quot;);
+      strcat(out, token);
+      strcat(out, &quot;] of&quot;);
+    }
+  }
+}
+
+void attr_dcl(void)
+{
+  while (get_next_token() != PAREN_CLOSE &amp;&amp; next_token != &#x27;\n&#x27;)
+  {
+    if (next_token == ATTR_SEPARATOR)
+    {
+      strcat(out, &quot;,&quot;);
+    }
+    else if (next_token == NAME)
+    {
+      if (is_valid_qualifier(token))
+      {
+        strcat(out, &quot; &quot;);
+        strcat(out, token);
+        get_next_token();
+      }
+
+      if (is_valid_data_type(token))
+      {
+        enum boolean is_void_type = FALSE;
+        if (strcmp(token, &quot;void&quot;) == 0)
+        {
+          is_void_type = TRUE;
+        }
+
+        strcat(out, &quot; &quot;);
+        strcat(out, token);
+
+        get_next_token();
+        if (next_token == NAME)
+        {
+          if (is_void_type)
+          {
+            printf(&quot;Error: variable &#x27;%s&#x27; has incomplete type &#x27;void&#x27; on line %zu.\n&quot;, token, line_nr);
+          }
+
+          strcat(out, &quot; &quot;);
+          strcat(out, token);
+        }
+        else if (next_token == PAREN_CLOSE)
+        {
+          if (is_void_type)
+          {
+            return;
+          }
+
+          Error = TRUE;
+          printf(&quot;Syntax Error: missing variable name on line %zu.\n&quot;, line_nr);
+          return;
+        }
+        else
+        {
+          Error = TRUE;
+          printf(&quot;Syntax Error: &#x27;%c&#x27; unexpected on line %zu.\n&quot;, next_token, line_nr);
+        }
+      }
+      else
+      {
+        Error = TRUE;
+        printf(&quot;Syntax Error: &#x27;%s&#x27; unexpected on line %zu.\n&quot;, token, line_nr);
+      }
+    }
+    else
+    {
+      Error = TRUE;
+      printf(&quot;Syntax Error: &#x27;%c&#x27; unexpected on line %zu.\n&quot;, next_token, line_nr);
+    }
+  }
+}
+
+// NOTE: run: ./dcl &lt; test.txt
+
+      </code></pre>
+    </div>
+    <footer>Generated from OutisNemosseus/the-c-programming-language-2nd-edition-solutions ? Chapter page</footer>
+  </main>
+</body>
+</html>

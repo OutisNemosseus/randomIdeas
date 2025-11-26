@@ -12,7 +12,9 @@
       "Bash(git commit:*)",
       "Bash(python serve-ccompiler.py:*)",
       "Bash(timeout 2 bash:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(python generate_kandr_pages.py:*)"
     ],
     "deny": [],
     "ask": []

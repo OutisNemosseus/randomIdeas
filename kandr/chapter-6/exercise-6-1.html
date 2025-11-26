@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exercise 6.1: Count C Keywords - K&R C Programming</title>
+
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      height: 100vh; display: flex; flex-direction: column;
+      background: #0b1020; color: #e5e7eb;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0f172a;
+    }
+    header h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    header .breadcrumb {
+      font-size: 0.9rem; color: #9ca3af;
+      margin-left: auto;
+    }
+    header .breadcrumb a {
+      color: #60a5fa; text-decoration: none;
+    }
+    header .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    button {
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      border: 1px solid #334155; background: #111827; color: #e5e7eb;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:hover { background: #1f2937; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .main {
+      flex: 1; display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      min-height: 0;
+    }
+    #editor { height: 100%; }
+    .right {
+      border-left: 1px solid #1f2937;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel {
+      padding: 0.6rem 0.8rem; border-bottom: 1px solid #1f2937;
+      background: #0b1224; font-size: 0.9rem;
+    }
+    #status { color: #9ca3af; }
+    #output {
+      flex: 1; padding: 0.8rem; margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem; white-space: pre-wrap; overflow: auto;
+      background: #050814;
+    }
+    .success { color: #4ade80; }
+    .error { color: #fca5a5; }
+
+    footer {
+      padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #9ca3af;
+      border-top: 1px solid #1f2937; background: #0f172a;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Exercise 6.1: Count C Keywords</h1>
+    <button id="runBtn" disabled>▶ Compile & Run</button>
+    <span id="status">Loading editor…</span>
+    <div class="breadcrumb">
+      <a href="../index.html">K&R Exercises</a> /
+      <a href="index.html">Chapter 6</a> /
+      Exercise 6.1
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="editor"></div>
+
+    <div class="right">
+      <div class="panel">Output</div>
+      <pre id="output">Click "Compile & Run" to execute your code...</pre>
+    </div>
+  </div>
+
+  <footer>
+    K&R C Programming Language Exercises • Wandbox API • Monaco Editor
+  </footer>
+
+<script>
+let editor = null;
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_WORD_LEN 100
+#define NR_OF_KEYS sizeof(keytab) / sizeof(keytab[0])
+
+struct key
+{
+  char *word;
+  int count;
+};
+
+void skip_blanks();
+void skip_comments();
+void skip_chars_between(char start, char end);
+void skip_char_literal();
+void skip_string_literal();
+
+int get_word(char *word, int max_word_len);
+int bin_search(char *word, struct key arr[], int arr_len);
+
+struct key keytab[] = {
+    {"auto", 0},
+    {"break", 0},
+    {"case", 0},
+    {"char", 0},
+    {"const", 0},
+    {"continue", 0},
+    {"default", 0},
+    {"do", 0},
+    {"double", 0},
+    {"else", 0},
+    {"enum", 0},
+    {"extern", 0},
+    {"float", 0},
+    {"for", 0},
+    {"goto", 0},
+    {"if", 0},
+    {"int", 0},
+    {"long", 0},
+    {"register", 0},
+    {"return", 0},
+    {"short", 0},
+    {"signed", 0},
+    {"size_t", 0},
+    {"sizeof", 0},
+    {"static", 0},
+    {"struct", 0},
+    {"switch", 0},
+    {"typedef", 0},
+    {"union", 0},
+    {"unsigned", 0},
+    {"void", 0},
+    {"volatile", 0},
+    {"while", 0},
+};
+
+int main(void)
+{
+  int n;
+  char word[MAX_WORD_LEN];
+
+  while (get_word(word, MAX_WORD_LEN) != EOF)
+  {
+    if (isalpha(word[0]))
+    {
+      if ((n = bin_search(word, keytab, NR_OF_KEYS)) >= 0)
+      {
+        keytab[n].count++;
+      }
+    }
+  }
+
+  for (size_t i = 0; i < NR_OF_KEYS; ++i)
+  {
+    if (keytab[i].count)
+    {
+      printf("%4d %s\\n", keytab[i].count, keytab[i].word);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+void skip_comments()
+{
+  int c = getc(stdin);
+  if (c == '/')
+  {
+    c = getc(stdin);
+    if (c == '/')
+    {
+      while ((c = getc(stdin)) != '\\n' && c != EOF)
+        ;
+    }
+    else if (c == '*')
+    {
+      while ((c = getc(stdin)) != '*' && c != EOF)
+        ;
+      c = getc(stdin);
+      if (c == '/')
+      {
+        ungetc('\\n', stdin);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void skip_chars_between(char start, char end)
+{
+  int c = getc(stdin);
+  if (c == start)
+  {
+    while ((c = getc(stdin)) != EOF)
+    {
+      if (c == '\\\\')
+      {
+        if ((c = getc(stdin)) == EOF)
+        {
+          break;
+        }
+      }
+      else if (c == end)
+      {
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void skip_char_literal(void)
+{
+  skip_chars_between('\\'', '\\'');
+}
+
+void skip_string_literal(void)
+{
+  skip_chars_between('"', '"');
+}
+
+int get_word(char *word, int max_word_len)
+{
+  skip_blanks();
+  skip_comments();
+  skip_char_literal();
+  skip_string_literal();
+
+  int c = getc(stdin);
+  size_t i = 0;
+
+  if (c != EOF)
+  {
+    word[i++] = c;
+  }
+
+  if (!isalpha(c) && c != '_')
+  {
+    word[i] = '\\0';
+    return c;
+  }
+
+  while ((isalnum(c = getc(stdin)) || c == '_') && i < max_word_len)
+  {
+    word[i++] = c;
+  }
+  ungetc(c, stdin);
+  word[i] = '\\0';
+
+  return word[0];
+}
+
+int bin_search(char *word, struct key arr[], int arr_len)
+{
+  int low = 0;
+  int high = arr_len - 1;
+  int mid;
+
+  while (low <= high)
+  {
+    mid = (low + high) / 2;
+
+    int cond = strcmp(word, arr[mid].word);
+    if (cond < 0)
+    {
+      high = mid - 1;
+    }
+    else if (cond > 0)
+    {
+      low = mid + 1;
+    }
+    else
+    {
+      return mid;
+    }
+  }
+
+  return -1;
+}
+
+// NOTE: run: ./count_c_keywords < count_c_keywords.c
+`,
+    language: "c",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true
+  });
+
+  runBtn.disabled = false;
+  status("Editor ready. Press Compile & Run.");
+});
+
+const runBtn = document.getElementById("runBtn");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+
+function status(msg){ statusEl.textContent = msg; }
+function out(msg="", className=""){
+  outputEl.textContent = msg;
+  outputEl.className = className;
+}
+
+runBtn.addEventListener("click", async () => {
+  out("Compiling and running...");
+  status("Running...");
+  runBtn.disabled = true;
+
+  const code = editor.getValue();
+
+  try {
+    const response = await fetch('https://wandbox.org/api/compile.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        compiler: 'gcc-head',
+        code: code,
+        options: 'warning,gnu++1y',
+        stdin: '',
+        'compiler-option-raw': '-lm'
+      })
+    });
+
+    const result = await response.json();
+
+    let outputText = '';
+    if (result.program_output) {
+      outputText += '✅ Output:\n' + result.program_output;
+    }
+    if (result.program_error) {
+      outputText += '\n⚠️ Errors:\n' + result.program_error;
+    }
+    if (result.compiler_error) {
+      outputText += '\n❌ Compile Error:\n' + result.compiler_error;
+    }
+
+    out(outputText || '✅ Program completed successfully (no output)',
+        result.compiler_error ? 'error' : 'success');
+    status(result.compiler_error ? "Compile error." : "Run complete.");
+
+  } catch (e) {
+    out('❌ Error: ' + (e.message || String(e)), 'error');
+    status("Error.");
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

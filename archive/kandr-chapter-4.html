@@ -1,0 +1,2115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>K&R 2e Solutions - Chapter 4</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f172a;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1020 40%, #0b1020 100%);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--accent); }
+    .card h3 { margin: 12px 0 6px; font-size: 16px; color: var(--accent2); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    pre {
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    a { color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <h1>Chapter 4 ? C solutions</h1>
+    <p class="subtitle">Each exercise folder from the repository, with its C source displayed inline.</p>
+    <div class="nav">
+      <a href="kandr-index.html">? Back to index</a>
+      <a href="kandr-chapter-1.html">Chapter 1</a>
+      <a href="kandr-chapter-2.html">Chapter 2</a>
+      <a href="kandr-chapter-3.html">Chapter 3</a>
+      <a href="kandr-chapter-5.html">Chapter 5</a>
+      <a href="kandr-chapter-6.html">Chapter 6</a>
+      <a href="kandr-chapter-7.html">Chapter 7</a>
+      <a href="kandr-chapter-8.html">Chapter 8</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Exercise 4.01</h2>
+      <p class="meta">chapter_4\exercise_4_01</p>
+      <h3>strindex.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+#define MAXLEN 1000
+
+int get_line(char line[], int lim);
+int strindex(char source[], char pattern[]);
+
+int main(void)
+{
+  char line[MAXLEN];
+  char pattern[MAXLEN] = &quot;example&quot;;
+
+  get_line(line, MAXLEN);
+  printf(&quot;%s\n&quot;, line);
+
+  printf(&quot;Pattern found at index %d\n&quot;, strindex(line, pattern));
+
+  return 0;
+}
+
+int get_line(char line[], int lim)
+{
+  int i = 0, c;
+
+  while (lim &gt; 0 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+    --lim;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+int strindex(char source[], char pattern[])
+{
+  int i, j, k;
+
+  printf(&quot;line len: %lu\n&quot;, strlen(source));
+
+  for (i = strlen(source); i &gt;= 0; --i)
+  {
+    for (j = i, k = 0; pattern[k] != &#x27;\0&#x27; &amp;&amp; source[j] == pattern[k]; ++j, ++k)
+      ;
+
+    if (k &gt; 0 &amp;&amp; pattern[k] == &#x27;\0&#x27;)
+    {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+// NOTE: It is simple to find the rightmost string pattern in the initial string
+// if we search for the pattern by iterating the initial string from the end to
+// the begining.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.02</h2>
+      <p class="meta">chapter_4\exercise_4_02</p>
+      <h3>atof.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAXLEN 500
+
+int get_line(char line[], unsigned int max_line_len);
+double atof(char s[]);
+
+int main(void)
+{
+  char line[MAXLEN];
+
+  get_line(line, MAXLEN);
+  printf(&quot;%s&quot;, line);
+
+  printf(&quot;%f&quot;, atof(line));
+
+  return 0;
+}
+
+int get_line(char line[], unsigned int max_line_len)
+{
+  int i = 0, c;
+
+  while (i &lt; max_line_len - 1 &amp;&amp; (c = getchar()) != &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+double atof(char s[])
+{
+  double val, power;
+  int i, sign, exp_sign = 1, exp_pwr = 0;
+
+  for (i = 0; isspace(s[i]); ++i)
+    ;
+
+  sign = (s[i] == &#x27;-&#x27;) ? -1 : 1;
+
+  if (s[i] == &#x27;+&#x27; || s[i] == &#x27;-&#x27;)
+  {
+    ++i;
+  }
+
+  for (val = 0.0; isdigit(s[i]); ++i)
+  {
+    val = 10.0 * val + (s[i] - &#x27;0&#x27;);
+  }
+
+  if (s[i] == &#x27;.&#x27;)
+  {
+    ++i;
+  }
+
+  for (power = 1.0; isdigit(s[i]); ++i)
+  {
+    val = 10.0 * val + (s[i] - &#x27;0&#x27;);
+    power *= 10;
+  }
+
+  if (s[i] == &#x27;e&#x27; || s[i] == &#x27;E&#x27;)
+  {
+    if (s[++i] == &#x27;-&#x27;)
+    {
+      exp_sign = -1;
+      ++i;
+    }
+  }
+
+  while (isdigit(s[i]))
+  {
+    exp_pwr = 10 * exp_pwr + (s[i] - &#x27;0&#x27;);
+    ++i;
+  }
+
+  while (exp_pwr)
+  {
+    if (exp_sign == -1)
+    {
+      power *= 10;
+    }
+    else
+    {
+      power /= 10;
+    }
+
+    --exp_pwr;
+  }
+
+  return sign * val / power;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.03</h2>
+      <p class="meta">chapter_4\exercise_4_03</p>
+      <h3>calculator.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAXOP 100
+#define MAXVAL 100
+#define BUFFSIZE 100
+#define NUMBER &#x27;0&#x27;
+
+int getop(char[]);
+void push(double);
+double pop(void);
+
+int main(void)
+{
+  int type;
+  double op2;
+  char s[MAXOP];
+
+  while ((type = getop(s)) != EOF)
+  {
+    switch (type)
+    {
+    case NUMBER:
+      push(atof(s));
+      break;
+
+    case &#x27;+&#x27;:
+      push(pop() + pop());
+      break;
+
+    case &#x27;-&#x27;:
+      op2 = pop();
+      push(pop() - op2);
+      break;
+
+    case &#x27;*&#x27;:
+      push(pop() * pop());
+      break;
+
+    case &#x27;/&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push(pop() / op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+
+      break;
+
+    case &#x27;%&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push((int)pop() % (int)op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+      break;
+
+    case &#x27;\n&#x27;:
+      printf(&quot;result: %.8g\n&quot;, pop());
+      break;
+
+    default:
+      printf(&quot;Error: unknown command %s.\n&quot;, s);
+      break;
+    }
+  }
+
+  return 0;
+}
+
+int sp = 0;
+double val[MAXVAL];
+
+void push(double f)
+{
+  if (sp &lt; MAXVAL)
+  {
+    val[sp++] = f;
+  }
+  else
+  {
+    printf(&quot;Error: stack full, can&#x27;t push %g.\n&quot;, f);
+  }
+}
+
+double pop(void)
+{
+  if (sp &gt; 0)
+  {
+    return val[--sp];
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+    return 0.0;
+  }
+}
+
+int bufp = 0;
+char buf[BUFFSIZE];
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+int getop(char s[])
+{
+  int i = 0, c;
+
+  while ((s[0] = c = getch()) == &#x27; &#x27; || c == &#x27;\t&#x27;)
+    ;
+
+  s[1] = &#x27;\0&#x27;;
+
+  if (!isdigit(c) &amp;&amp; c != &#x27;.&#x27; &amp;&amp; c != &#x27;-&#x27;)
+  {
+    return c;
+  }
+
+  if (c == &#x27;-&#x27;)
+  {
+    int next = getch();
+    if (next == &#x27;\n&#x27; || next == &#x27; &#x27; || next == &#x27;\t&#x27;)
+    {
+      ungetch(next);
+      return c; // return &#x27;-&#x27; as operator
+    }
+    else if (!isdigit(next) &amp;&amp; next != &#x27;.&#x27;)
+    {
+      return next; // not a number
+    }
+    else // number like &quot;-5&quot;, &quot;-.6&quot; etc, next is digit or &#x27;.&#x27;
+    {
+      s[++i] = c = next;
+    }
+  }
+  else
+  {
+    c = getch();
+  }
+
+  if (isdigit(c))
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c == &#x27;.&#x27;)
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c != EOF)
+  {
+    ungetch(c);
+  }
+
+  return NUMBER;
+}
+
+// NOTE: The getch() function check if there are characters in a buffer. If there
+// are characters the function will return the last character from the
+// buffer, else getchar() function is called. The ungetch() function will push
+// the last character in the buffer.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.04</h2>
+      <p class="meta">chapter_4\exercise_4_04</p>
+      <h3>stack.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAXOP 100
+#define MAXVAL 100
+#define BUFFSIZE 100
+#define NUMBER &#x27;0&#x27;
+
+int getop(char[]);
+
+void push(double f);
+double pop(void);
+void view_head(void);
+void duplicate(void);
+void swap(void);
+void clear(void);
+
+int main(void)
+{
+  int type;
+  double op2;
+  char s[MAXOP];
+
+  while ((type = getop(s)) != EOF)
+  {
+    switch (type)
+    {
+    case NUMBER:
+      push(atof(s));
+      break;
+
+    case &#x27;+&#x27;:
+      push(pop() + pop());
+      break;
+
+    case &#x27;-&#x27;:
+      op2 = pop();
+      push(pop() - op2);
+      break;
+
+    case &#x27;*&#x27;:
+      push(pop() * pop());
+      break;
+
+    case &#x27;/&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push(pop() / op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+
+      break;
+
+    case &#x27;%&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push((int)pop() % (int)op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+      break;
+
+    case &#x27;h&#x27;:
+      view_head();
+      break;
+
+    case &#x27;d&#x27;:
+      duplicate();
+      break;
+
+    case &#x27;s&#x27;:
+      swap();
+      break;
+
+    case &#x27;c&#x27;:
+      clear();
+      break;
+
+    case &#x27;\n&#x27;:
+      printf(&quot;result: %.8g\n&quot;, pop());
+      break;
+
+    default:
+      printf(&quot;Error: unknown command %s.\n&quot;, s);
+      break;
+    }
+  }
+
+  return 0;
+}
+
+int sp = 0;
+double stack[MAXVAL];
+
+void push(double f)
+{
+  if (sp &lt; MAXVAL)
+  {
+    stack[sp++] = f;
+  }
+  else
+  {
+    printf(&quot;Error: stack full.\n&quot;);
+  }
+}
+
+double pop(void)
+{
+  if (sp &gt; 0)
+  {
+    return stack[--sp];
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+
+  return 0.0;
+}
+
+void view_head(void)
+{
+  if (sp)
+  {
+    printf(&quot;stack_head: %g\n&quot;, stack[sp - 1]);
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+}
+
+void duplicate(void)
+{
+  double temp = pop();
+  push(temp);
+  push(temp);
+}
+
+void swap(void)
+{
+  double temp1 = pop();
+  double temp2 = pop();
+
+  push(temp1);
+  push(temp2);
+}
+
+void clear(void)
+{
+  while (sp &gt; 0)
+  {
+    stack[--sp] = 0.0;
+  }
+}
+
+int bufp = 0;
+char buf[BUFFSIZE];
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+int getop(char s[])
+{
+  int i = 0, c;
+
+  while ((s[0] = c = getch()) == &#x27; &#x27; || c == &#x27;\t&#x27;)
+    ;
+
+  s[1] = &#x27;\0&#x27;;
+
+  if (!isdigit(c) &amp;&amp; c != &#x27;.&#x27; &amp;&amp; c != &#x27;-&#x27;)
+  {
+    return c;
+  }
+
+  if (c == &#x27;-&#x27;)
+  {
+    int next = getch();
+    if (next == &#x27;\n&#x27; || next == &#x27; &#x27; || next == &#x27;\t&#x27;)
+    {
+      ungetch(next);
+      return c; // return &#x27;-&#x27; as operator
+    }
+    else if (!isdigit(next) &amp;&amp; next != &#x27;.&#x27;)
+    {
+      return next; // not a number
+    }
+    else // number like &quot;-5&quot;, &quot;-.6&quot; etc, next is digit or &#x27;.&#x27;
+    {
+      s[++i] = c = next;
+    }
+  }
+
+  if (isdigit(c))
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c == &#x27;.&#x27;)
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c != EOF)
+  {
+    ungetch(c);
+  }
+
+  return NUMBER;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.05</h2>
+      <p class="meta">chapter_4\exercise_4_05</p>
+      <h3>math.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+#include &lt;math.h&gt;
+
+#define MAXOP 100
+#define MAXVAL 100
+#define BUFFSIZE 100
+#define NUMBER &#x27;0&#x27;
+
+int getop(char[]);
+
+void push(double f);
+double pop(void);
+void view_head(void);
+void duplicate(void);
+void swap(void);
+void clear(void);
+
+int main(void)
+{
+  int type;
+  double op2;
+  char s[MAXOP];
+
+  while ((type = getop(s)) != EOF)
+  {
+    switch (type)
+    {
+    case NUMBER:
+      push(atof(s));
+      break;
+
+    case &#x27;+&#x27;:
+      push(pop() + pop());
+      break;
+
+    case &#x27;-&#x27;:
+      op2 = pop();
+      push(pop() - op2);
+      break;
+
+    case &#x27;*&#x27;:
+      push(pop() * pop());
+      break;
+
+    case &#x27;/&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push(pop() / op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+
+      break;
+
+    case &#x27;%&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push((int)pop() % (int)op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+      break;
+
+    case &#x27;^&#x27;:
+      op2 = pop();
+      push(pow(pop(), op2));
+      break;
+
+    case &#x27;~&#x27;:
+      push(sin(pop()));
+      break;
+
+    case &#x27;e&#x27;:
+      push(exp(pop()));
+      break;
+
+    case &#x27;h&#x27;:
+      view_head();
+      break;
+
+    case &#x27;d&#x27;:
+      duplicate();
+      break;
+
+    case &#x27;s&#x27;:
+      swap();
+      break;
+
+    case &#x27;c&#x27;:
+      clear();
+      break;
+
+    case &#x27;\n&#x27;:
+      printf(&quot;result: %.8g\n&quot;, pop());
+      break;
+
+    default:
+      printf(&quot;Error: unknown command %s.\n&quot;, s);
+      break;
+    }
+  }
+
+  return 0;
+}
+
+int sp = 0;
+double stack[MAXVAL];
+
+void push(double f)
+{
+  if (sp &lt; MAXVAL)
+  {
+    stack[sp++] = f;
+  }
+  else
+  {
+    printf(&quot;Error: stack full.\n&quot;);
+  }
+}
+
+double pop(void)
+{
+  if (sp &gt; 0)
+  {
+    return stack[--sp];
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+
+  return 0.0;
+}
+
+void view_head(void)
+{
+  if (sp)
+  {
+    printf(&quot;stack_head: %g\n&quot;, stack[sp - 1]);
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+}
+
+void duplicate(void)
+{
+  double temp = pop();
+  push(temp);
+  push(temp);
+}
+
+void swap(void)
+{
+  double temp1 = pop();
+  double temp2 = pop();
+
+  push(temp1);
+  push(temp2);
+}
+
+void clear(void)
+{
+  do
+  {
+    stack[sp] = 0.0;
+  } while (sp--);
+}
+
+int bufp = 0;
+char buf[BUFFSIZE];
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+int getop(char s[])
+{
+  int i = 0, c;
+
+  while ((s[0] = c = getch()) == &#x27; &#x27; || c == &#x27;\t&#x27;)
+    ;
+
+  s[1] = &#x27;\0&#x27;;
+
+  if (!isdigit(c) &amp;&amp; c != &#x27;.&#x27; &amp;&amp; c != &#x27;-&#x27;)
+  {
+    return c;
+  }
+
+  if (c == &#x27;-&#x27;)
+  {
+    int next = getch();
+    if (next == &#x27;\n&#x27; || next == &#x27; &#x27; || next == &#x27;\t&#x27;)
+    {
+      ungetch(next);
+      return c; // return &#x27;-&#x27; as operator
+    }
+    else if (!isdigit(next) &amp;&amp; next != &#x27;.&#x27;)
+    {
+      return next; // not a number
+    }
+    else // number like &quot;-5&quot;, &quot;-.6&quot; etc, next is digit or &#x27;.&#x27;
+    {
+      s[++i] = c = next;
+    }
+  }
+  else
+  {
+    c = getch();
+  }
+
+  if (isdigit(c))
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c == &#x27;.&#x27;)
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c != EOF)
+  {
+    ungetch(c);
+  }
+
+  return NUMBER;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.06</h2>
+      <p class="meta">chapter_4\exercise_4_06</p>
+      <h3>variables.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+#include &lt;math.h&gt;
+
+#define MAXOP 100
+#define MAXVAL 100
+#define BUFFSIZE 100
+#define NUMBER &#x27;0&#x27;
+
+#define VARSET &#x27;_&#x27;
+#define VARGET &#x27;a&#x27;
+#define VARNUM 26
+char var = &#x27;0&#x27;;
+
+enum boolean
+{
+  FALSE,
+  TRUE
+};
+
+int getop(char[]);
+
+void push(double f);
+double pop(void);
+int is_empty(void);
+void view_head(void);
+void duplicate(void);
+void swap(void);
+void clear(void);
+
+int main(void)
+{
+  int type;
+  double op2;
+  char s[MAXOP];
+
+  int varindex = 0;
+  double var_buff[VARNUM];
+
+  while ((type = getop(s)) != EOF)
+  {
+    switch (type)
+    {
+    case NUMBER:
+      push(atof(s));
+      break;
+
+    case &#x27;+&#x27;:
+      push(pop() + pop());
+      break;
+
+    case &#x27;-&#x27;:
+      op2 = pop();
+      push(pop() - op2);
+      break;
+
+    case &#x27;*&#x27;:
+      push(pop() * pop());
+      break;
+
+    case &#x27;/&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push(pop() / op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+
+      break;
+
+    case &#x27;%&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push((int)pop() % (int)op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+      break;
+
+    case &#x27;^&#x27;:
+      op2 = pop();
+      push(pow(pop(), op2));
+      break;
+
+    case &#x27;~&#x27;:
+      push(sin(pop()));
+      break;
+
+    case &#x27;E&#x27;:
+      push(exp(pop()));
+      break;
+
+    case &#x27;H&#x27;:
+      view_head();
+      break;
+
+    case &#x27;D&#x27;:
+      duplicate();
+      break;
+
+    case &#x27;S&#x27;:
+      swap();
+      break;
+
+    case &#x27;C&#x27;:
+      clear();
+      break;
+
+    case VARSET:
+      var_buff[varindex++] = pop();
+      printf(&quot;variable %c: %.3f\n&quot;, &#x27;a&#x27; + varindex - 1, var_buff[varindex - 1]);
+      break;
+
+    case VARGET:
+      // Check if the variable has been assigned previously
+      if (var - &#x27;a&#x27; &lt;= (varindex - 1))
+      {
+        push(var_buff[var - &#x27;a&#x27;]);
+      }
+      else
+      {
+        printf(&quot;Error: undefined variable.\n&quot;);
+      }
+      break;
+
+    case &#x27;\n&#x27;:
+      if (!is_empty())
+      {
+        printf(&quot;result: %.8g\n&quot;, pop());
+      }
+      break;
+
+    default:
+      printf(&quot;Error: unknown command %s.\n&quot;, s);
+      break;
+    }
+  }
+
+  return 0;
+}
+
+int sp = 0;
+double stack[MAXVAL];
+
+void push(double f)
+{
+  if (sp &lt; MAXVAL)
+  {
+    stack[sp++] = f;
+  }
+  else
+  {
+    printf(&quot;Error: stack full.\n&quot;);
+  }
+}
+
+double pop(void)
+{
+  if (sp &gt; 0)
+  {
+    return stack[--sp];
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+
+  return 0.0;
+}
+
+int is_empty(void)
+{
+  if (sp &gt; 0)
+  {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+void view_head(void)
+{
+  if (sp)
+  {
+    printf(&quot;stack_head: %g\n&quot;, stack[sp - 1]);
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+}
+
+void duplicate(void)
+{
+  double temp = pop();
+  push(temp);
+  push(temp);
+}
+
+void swap(void)
+{
+  double temp1 = pop();
+  double temp2 = pop();
+
+  push(temp1);
+  push(temp2);
+}
+
+void clear(void)
+{
+  do
+  {
+    stack[sp] = 0.0;
+  } while (sp--);
+}
+
+int bufp = 0;
+char buf[BUFFSIZE];
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+int getop(char s[])
+{
+  int i = 0, c;
+
+  while ((s[0] = c = getch()) == &#x27; &#x27; || c == &#x27;\t&#x27;)
+    ;
+
+  s[1] = &#x27;\0&#x27;;
+
+  if (islower(c))
+  {
+    var = c;
+    return VARGET;
+  }
+
+  if (!isdigit(c) &amp;&amp; c != &#x27;.&#x27; &amp;&amp; c != &#x27;-&#x27;)
+  {
+    return c;
+  }
+
+  if (c == &#x27;-&#x27;)
+  {
+    int next = getch();
+    if (next == &#x27;\n&#x27; || next == &#x27; &#x27; || next == &#x27;\t&#x27;)
+    {
+      ungetch(next);
+      return c; // return &#x27;-&#x27; as operator
+    }
+    else if (!isdigit(next) &amp;&amp; next != &#x27;.&#x27;)
+    {
+      return next; // not a number
+    }
+    else // number like &quot;-5&quot;, &quot;-.6&quot; etc, next is digit or &#x27;.&#x27;
+    {
+      s[++i] = c = next;
+    }
+  }
+  else
+  {
+    c = getch();
+  }
+
+  if (isdigit(c))
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c == &#x27;.&#x27;)
+  {
+    while (isdigit(s[++i] = c = getch()))
+      ;
+  }
+
+  if (c != EOF)
+  {
+    ungetch(c);
+  }
+
+  return NUMBER;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.07</h2>
+      <p class="meta">chapter_4\exercise_4_07</p>
+      <h3>ungets.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+#define MAXLEN 1000
+#define BUFFSIZE 1000
+
+int getstr(char line[], int limit);
+void ungetstr(char line[]);
+
+int main(void)
+{
+  char line[MAXLEN];
+  char temp[MAXLEN];
+
+  getstr(line, MAXLEN);
+  printf(&quot;%s&quot;, line);
+
+  ungetstr(line);
+
+  getstr(temp, MAXLEN);
+  printf(&quot;%s&quot;, temp);
+
+  return 0;
+}
+
+int getch(void);
+void ungetch(int c);
+
+int getstr(char line[], int limit)
+{
+  int i = 0, c;
+
+  while (limit - 1 &gt; 0 &amp;&amp; (c = getch()) != EOF &amp;&amp; c != &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+void ungetstr(char line[])
+{
+  int i = strlen(line);
+
+  while (i)
+  {
+    ungetch(line[--i]);
+  }
+}
+
+int bufp = 0;
+char buf[BUFFSIZE];
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+// NOTE: The ungetstr() function doesn&#x27;t need access to buf and bufp. It is enough
+// just to use the ungetch() function.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.08</h2>
+      <p class="meta">chapter_4\exercise_4_08</p>
+      <h3>getch.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int getch(void);
+void ungetch(int c);
+
+int main(void)
+{
+  char c = getch();
+  printf(&quot;%c\n&quot;, c);
+
+  ungetch(c);
+
+  printf(&quot;%c\n&quot;, c = getch());
+
+  return 0;
+}
+
+int buf = -1;
+
+int getch(void)
+{
+  char temp;
+
+  if (buf != -1)
+  {
+    temp = buf;
+    buf = -1;
+
+    return temp;
+  }
+
+  return getchar();
+}
+
+void ungetch(int c)
+{
+  if (buf != -1)
+  {
+    printf(&quot;ungetch: buffer full\n&quot;);
+  }
+  else
+  {
+    buf = c;
+  }
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.09</h2>
+      <p class="meta">chapter_4\exercise_4_09</p>
+      <h3>getch.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define BUFFSIZE 100
+
+int getch(void);
+void ungetch(int c);
+
+int main(void)
+{
+  int c;
+
+  c = getch();
+  putchar(c);
+
+  ungetch(EOF);
+
+  c = getch();
+  putchar(c);
+
+  return 0;
+}
+
+int bufp = 0;
+int buf[BUFFSIZE];
+
+int getch(void)
+{
+  return (bufp &gt; 0) ? buf[--bufp] : getchar();
+}
+
+void ungetch(int c)
+{
+  if (bufp &gt;= BUFFSIZE)
+  {
+    printf(&quot;ungetch: too many characters\n&quot;);
+  }
+  else
+  {
+    buf[bufp++] = c;
+  }
+}
+
+// NOTE: The getch() function can&#x27;t manage correctly the EOF character because
+// in the original K&amp;R version buf was a char array, which can&#x27;t hold the EOF
+// because EOF is -1 and char can&#x27;t hold negative number. However the gcc
+// compiler, on Windows, uses by default signed chars which can hold EOF, but
+// this is not platform independent.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.10</h2>
+      <p class="meta">chapter_4\exercise_4_10</p>
+      <h3>calculator.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+#include &lt;math.h&gt;
+
+#define MAXOP 100
+#define MAXVAL 100
+#define BUFFSIZE 100
+#define MAXLEN 1000
+#define NUMBER &#x27;0&#x27;
+
+#define VARSET &#x27;_&#x27;
+#define VARGET &#x27;a&#x27;
+#define VARNUM 26
+
+enum boolean
+{
+  FALSE,
+  TRUE
+};
+
+int get_line(char line[], unsigned int max_line_len);
+int getop(char[]);
+
+void push(double f);
+double pop(void);
+int is_empty(void);
+void view_head(void);
+void duplicate(void);
+void swap(void);
+void clear(void);
+
+char var = &#x27;0&#x27;;
+char line[MAXLEN];
+int line_i = 0;
+
+int main(void)
+{
+  int type;
+  double op2;
+  char s[MAXOP];
+
+  int varindex = 0;
+  double var_buff[VARNUM];
+
+  while (get_line(line, MAXLEN) != 0)
+  {
+    line_i = 0;
+    while ((type = getop(s)) != &#x27;\0&#x27;)
+    {
+      switch (type)
+      {
+      case NUMBER:
+        push(atof(s));
+        break;
+
+      case &#x27;+&#x27;:
+        push(pop() + pop());
+        break;
+
+      case &#x27;-&#x27;:
+        op2 = pop();
+        push(pop() - op2);
+        break;
+
+      case &#x27;*&#x27;:
+        push(pop() * pop());
+        break;
+
+      case &#x27;/&#x27;:
+        op2 = pop();
+
+        if (op2 != 0.0)
+        {
+          push(pop() / op2);
+        }
+        else
+        {
+          printf(&quot;Error: zero divisor.\n&quot;);
+        }
+
+        break;
+
+      case &#x27;%&#x27;:
+        op2 = pop();
+
+        if (op2 != 0.0)
+        {
+          push((int)pop() % (int)op2);
+        }
+        else
+        {
+          printf(&quot;Error: zero divisor.\n&quot;);
+        }
+        break;
+
+      case &#x27;^&#x27;:
+        op2 = pop();
+        push(pow(pop(), op2));
+        break;
+
+      case &#x27;~&#x27;:
+        push(sin(pop()));
+        break;
+
+      case &#x27;e&#x27;:
+        push(exp(pop()));
+        break;
+
+      case &#x27;h&#x27;:
+        view_head();
+        break;
+
+      case &#x27;d&#x27;:
+        duplicate();
+        break;
+
+      case &#x27;s&#x27;:
+        swap();
+        break;
+
+      case &#x27;c&#x27;:
+        clear();
+        break;
+
+      case VARSET:
+        var_buff[varindex++] = pop();
+        printf(&quot;variable %c: %.3f\n&quot;, &#x27;a&#x27; + varindex - 1, var_buff[varindex - 1]);
+        break;
+
+      case VARGET:
+        push(var_buff[var - &#x27;a&#x27;]);
+        break;
+
+      case &#x27;\n&#x27;:
+        if (!is_empty())
+        {
+          printf(&quot;result: %.8g\n&quot;, pop());
+        }
+        break;
+
+      default:
+        printf(&quot;Error: unknown command %s.\n&quot;, s);
+        break;
+      }
+    }
+  }
+
+  return 0;
+}
+
+int sp = 0;
+double stack[MAXVAL];
+
+void push(double f)
+{
+  if (sp &lt; MAXVAL)
+  {
+    stack[sp++] = f;
+  }
+  else
+  {
+    printf(&quot;Error: stack full.\n&quot;);
+  }
+}
+
+double pop(void)
+{
+  if (sp &gt; 0)
+  {
+    return stack[--sp];
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+
+  return 0.0;
+}
+
+int is_empty(void)
+{
+  if (sp &gt; 0)
+  {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+void view_head(void)
+{
+  if (sp)
+  {
+    printf(&quot;stack_head: %g\n&quot;, stack[sp - 1]);
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+  }
+}
+
+void duplicate(void)
+{
+  double temp = pop();
+  push(temp);
+  push(temp);
+}
+
+void swap(void)
+{
+  double temp1 = pop();
+  double temp2 = pop();
+
+  push(temp1);
+  push(temp2);
+}
+
+void clear(void)
+{
+  do
+  {
+    stack[sp] = 0.0;
+  } while (sp--);
+}
+
+int get_line(char line[], unsigned int max_line_len)
+{
+  int c, i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+int getop(char s[])
+{
+  int i = 0, c;
+
+  while ((s[0] = c = line[line_i++]) == &#x27; &#x27; || c == &#x27;\t&#x27;)
+    ;
+
+  s[1] = &#x27;\0&#x27;;
+
+  if (isalpha(c))
+  {
+    var = c;
+    return VARGET;
+  }
+
+  if (!isdigit(c) &amp;&amp; c != &#x27;.&#x27; &amp;&amp; c != &#x27;-&#x27;)
+  {
+    return c;
+  }
+
+  if (c == &#x27;-&#x27;)
+  {
+    int next = line[line_i++];
+    if (next == &#x27;\n&#x27; || next == &#x27; &#x27; || next == &#x27;\t&#x27; || next == &#x27;\0&#x27;)
+    {
+      --line_i;
+      return &#x27;-&#x27;;
+    }
+    else if (!isdigit(next) &amp;&amp; next != &#x27;.&#x27;) // not a number
+    {
+      return next;
+    }
+    else
+    {
+      s[++i] = c = next;
+    }
+  }
+  else
+  {
+    c = line[line_i++];
+  }
+
+  if (isdigit(c))
+  {
+    while (isdigit(s[++i] = c = line[line_i++]))
+      ;
+  }
+
+  if (c == &#x27;.&#x27;)
+  {
+    while (isdigit(s[++i] = c = line[line_i++]))
+      ;
+  }
+
+  --line_i;
+
+  return NUMBER;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.11</h2>
+      <p class="meta">chapter_4\exercise_4_11</p>
+      <h3>getop.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAXOP 100
+#define MAXVAL 100
+#define BUFFSIZE 100
+#define NUMBER &#x27;0&#x27;
+
+int getop(char[]);
+void push(double);
+double pop(void);
+
+int main(void)
+{
+  int type;
+  double op2;
+  char s[MAXOP];
+
+  while ((type = getop(s)) != EOF)
+  {
+    switch (type)
+    {
+    case NUMBER:
+      push(atof(s));
+      break;
+
+    case &#x27;+&#x27;:
+      push(pop() + pop());
+      break;
+
+    case &#x27;-&#x27;:
+      op2 = pop();
+      push(pop() - op2);
+      break;
+
+    case &#x27;*&#x27;:
+      push(pop() * pop());
+      break;
+
+    case &#x27;/&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push(pop() / op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+
+      break;
+
+    case &#x27;%&#x27;:
+      op2 = pop();
+
+      if (op2 != 0.0)
+      {
+        push((int)pop() % (int)op2);
+      }
+      else
+      {
+        printf(&quot;Error: zero divisor.\n&quot;);
+      }
+      break;
+
+    case &#x27;\n&#x27;:
+      printf(&quot;result: %.8g\n&quot;, pop());
+      break;
+
+    default:
+      printf(&quot;Error: unknown command %s.\n&quot;, s);
+      break;
+    }
+  }
+
+  return 0;
+}
+
+int sp = 0;
+double val[MAXVAL];
+
+void push(double f)
+{
+  if (sp &lt; MAXVAL)
+  {
+    val[sp++] = f;
+  }
+  else
+  {
+    printf(&quot;Error: stack full, can&#x27;t push %g.\n&quot;, f);
+  }
+}
+
+double pop(void)
+{
+  if (sp &gt; 0)
+  {
+    return val[--sp];
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+    return 0.0;
+  }
+}
+
+int getop(char s[])
+{
+  int i = 0, c;
+  static int buf = EOF;
+
+  while ((s[0] = c = getchar()) == &#x27; &#x27; || c == &#x27;\t&#x27;)
+    ;
+
+  s[1] = &#x27;\0&#x27;;
+
+  if (!isdigit(c) &amp;&amp; c != &#x27;.&#x27; &amp;&amp; c != &#x27;-&#x27;)
+  {
+    return c;
+  }
+
+  if (c == &#x27;-&#x27;)
+  {
+    int next = getchar();
+    if (!isdigit(next) &amp;&amp; next != &#x27;.&#x27;)
+    {
+      return next;
+    }
+
+    s[i] = c;
+    c = next = buf;
+  }
+  else
+  {
+    c = getchar();
+  }
+
+  if (isdigit(c))
+  {
+    while (isdigit(s[++i] = c = getchar()))
+      ;
+  }
+
+  if (c == &#x27;.&#x27;)
+  {
+    while (isdigit(s[++i] = c = getchar()))
+      ;
+  }
+
+  if (c != EOF)
+  {
+    buf = c;
+  }
+
+  return NUMBER;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.12</h2>
+      <p class="meta">chapter_4\exercise_4_12</p>
+      <h3>itoa.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLEN 100
+
+void int_to_array(int n, char str[]);
+
+int main(void)
+{
+  int n = -1234;
+  char str[MAXLEN];
+
+  int_to_array(n, str);
+  printf(&quot;%s\n&quot;, str);
+
+  n = -7676;
+
+  int_to_array(n, str);
+  printf(&quot;%s&quot;, str);
+
+  return 0;
+}
+
+void int_to_array(int n, char str[])
+{
+  static int i = 0;
+
+  if (n)
+  {
+    if(n &lt; 0){
+      i = 0;
+      str[i++] = &#x27;-&#x27;;
+      n *= -1;
+    }
+
+    int d = n % 10;
+    n /= 10;
+
+
+    int_to_array(n, str);
+ 
+
+    str[i++] = d + &#x27;0&#x27;;
+    str[i] = &#x27;\0&#x27;;
+  }
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.13</h2>
+      <p class="meta">chapter_4\exercise_4_13</p>
+      <h3>reverse.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLEN 100
+
+void reverse(char str[]);
+
+int main(void)
+{
+  char str[MAXLEN] = &quot;This is just a string&quot;;
+
+  printf(&quot;%s\n&quot;, str);
+  reverse(str);
+  printf(&quot;%s\n&quot;, str);
+
+  return 0;
+}
+
+void reverse(char str[])
+{
+  static int i = 0;
+  static int j = 0;
+
+  if (str[i] != &#x27;\0&#x27;)
+  {
+    char c = str[i++];
+    reverse(str);
+
+    str[j++] = c;
+  }
+
+  // if whole reverse process is complete, reset the static variables to make this function reusable
+  if (str[j] == &#x27;\0&#x27;)
+  {
+    i = 0;
+    j = 0;
+  }
+}
+
+// NOTE: As a simple observation when recursive functions are used, static
+// variables become handy to construct some useful functionalities.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 4.14</h2>
+      <p class="meta">chapter_4\exercise_4_14</p>
+      <h3>swap.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define swap(t, x, y) \
+  {                   \
+    t temp;           \
+    temp = x;         \
+    x = y;            \
+    y = temp;         \
+  };
+
+int main(void)
+{
+  int x = 2, y = 3;
+
+  printf(&quot;x: %d, y: %d\n&quot;, x, y);
+
+  swap(int, x, y);
+  printf(&quot;x: %d, y: %d\n&quot;, x, y);
+
+  return 0;
+}
+
+// NOTE: A use of a block is very useful because there can be created local
+// variables that don&#x27;t create conflicts with already existed entities.
+
+      </code></pre>
+    </div>
+    <footer>Generated from OutisNemosseus/the-c-programming-language-2nd-edition-solutions ? Chapter page</footer>
+  </main>
+</body>
+</html>

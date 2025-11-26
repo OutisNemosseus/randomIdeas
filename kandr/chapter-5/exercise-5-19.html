@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exercise 5.19: Undcl - K&R C Programming</title>
+
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      height: 100vh; display: flex; flex-direction: column;
+      background: #0b1020; color: #e5e7eb;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0f172a;
+    }
+    header h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    header .breadcrumb {
+      font-size: 0.9rem; color: #9ca3af;
+      margin-left: auto;
+    }
+    header .breadcrumb a {
+      color: #60a5fa; text-decoration: none;
+    }
+    header .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    button {
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      border: 1px solid #334155; background: #111827; color: #e5e7eb;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:hover { background: #1f2937; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .main {
+      flex: 1; display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      min-height: 0;
+    }
+    #editor { height: 100%; }
+    .right {
+      border-left: 1px solid #1f2937;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel {
+      padding: 0.6rem 0.8rem; border-bottom: 1px solid #1f2937;
+      background: #0b1224; font-size: 0.9rem;
+    }
+    #status { color: #9ca3af; }
+    #output {
+      flex: 1; padding: 0.8rem; margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem; white-space: pre-wrap; overflow: auto;
+      background: #050814;
+    }
+    .success { color: #4ade80; }
+    .error { color: #fca5a5; }
+
+    footer {
+      padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #9ca3af;
+      border-top: 1px solid #1f2937; background: #0f172a;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Exercise 5.19: Undcl</h1>
+    <button id="runBtn" disabled>▶ Compile & Run</button>
+    <span id="status">Loading editor…</span>
+    <div class="breadcrumb">
+      <a href="../index.html">K&R Exercises</a> /
+      <a href="index.html">Chapter 5</a> /
+      Exercise 5.19
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="editor"></div>
+
+    <div class="right">
+      <div class="panel">Output</div>
+      <pre id="output">Click "Compile & Run" to execute your code...</pre>
+    </div>
+  </div>
+
+  <footer>
+    K&R C Programming Language Exercises • Wandbox API • Monaco Editor
+  </footer>
+
+<script>
+let editor = null;
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_TOKEN_LEN 100
+#define MAX_OUT_LEN 1000
+
+void skip_blanks();
+void skip_comments();
+
+void get_name(char *dest, const size_t max_len);
+int get_next_token(void);
+
+enum token_type
+{
+  NAME,
+  PARENS,
+  BRACKETS,
+  PAREN_OPEN = '(',
+  PAREN_CLOSE = ')',
+  BRACKET_OPEN = '[',
+  BRACKET_CLOSE = ']'
+};
+
+int next_token;
+
+char token[MAX_TOKEN_LEN];
+char out[MAX_OUT_LEN];
+
+int main(void)
+{
+  char temp[MAX_OUT_LEN + MAX_TOKEN_LEN];
+
+  while (get_next_token() != EOF)
+  {
+    strcpy(out, token);
+
+    while (get_next_token() != '\\n')
+    {
+      if (next_token == PARENS)
+      {
+        if (out[0] == '*')
+        {
+          sprintf(temp, "(%s)", out);
+          strcpy(out, temp);
+        }
+
+        strcat(out, token);
+      }
+      else if (next_token == BRACKETS)
+      {
+        if (out[0] == '*')
+        {
+          sprintf(temp, "(%s)", out);
+          strcpy(out, temp);
+        }
+
+        sprintf(temp, "[%s]", token);
+        strcat(out, temp);
+      }
+      else if (next_token == '*')
+      {
+        sprintf(temp, "*%s", out);
+        strcpy(out, temp);
+      }
+      else if (next_token == NAME)
+      {
+        sprintf(temp, "%s %s", token, out);
+        strcpy(out, temp);
+      }
+      else
+      {
+        printf("Syntax Error: Invalid input at %s.\\n", token);
+      }
+    }
+    puts(out);
+  }
+
+  return EXIT_SUCCESS;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+void skip_comments()
+{
+  int c = getc(stdin);
+  if (c == '/')
+  {
+    c = getc(stdin);
+    if (c == '/')
+    {
+      while ((c = getc(stdin)) != '\\n' && c != EOF)
+        ;
+    }
+    else if (c == '*')
+    {
+      while ((c = getc(stdin)) != '*' && c != EOF)
+        ;
+      c = getc(stdin);
+      if (c == '/')
+      {
+        ungetc('\\n', stdin);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void get_name(char *dest, const size_t max_len)
+{
+  int c;
+  size_t i = 0;
+  while ((isalnum(c = getc(stdin)) || c == '_') && i < max_len)
+  {
+    dest[i++] = c;
+  }
+  dest[i] = '\\0';
+  ungetc(c, stdin);
+}
+
+int get_next_token(void)
+{
+  skip_blanks();
+  skip_comments();
+  skip_blanks();
+
+  int c = getc(stdin);
+  if (c == '(')
+  {
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == ')')
+    {
+      strcpy(token, "()");
+      return next_token = PARENS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = PAREN_OPEN;
+  }
+  else if (c == '[')
+  {
+    skip_blanks();
+    get_name(token, MAX_TOKEN_LEN);
+    skip_blanks();
+
+    c = getc(stdin);
+    if (c == ']')
+    {
+      return next_token = BRACKETS;
+    }
+    ungetc(c, stdin);
+
+    return next_token = BRACKET_OPEN;
+  }
+  else if (isalpha(c))
+  {
+    ungetc(c, stdin);
+    get_name(token, MAX_TOKEN_LEN);
+    return next_token = NAME;
+  }
+
+  return next_token = c;
+}
+
+// NOTE: run: ./undcl < test.txt
+`,
+    language: "c",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true
+  });
+
+  runBtn.disabled = false;
+  status("Editor ready. Press Compile & Run.");
+});
+
+const runBtn = document.getElementById("runBtn");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+
+function status(msg){ statusEl.textContent = msg; }
+function out(msg="", className=""){
+  outputEl.textContent = msg;
+  outputEl.className = className;
+}
+
+runBtn.addEventListener("click", async () => {
+  out("Compiling and running...");
+  status("Running...");
+  runBtn.disabled = true;
+
+  const code = editor.getValue();
+
+  try {
+    const response = await fetch('https://wandbox.org/api/compile.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        compiler: 'gcc-head',
+        code: code,
+        options: 'warning,gnu++1y',
+        stdin: '',
+        'compiler-option-raw': '-lm'
+      })
+    });
+
+    const result = await response.json();
+
+    let outputText = '';
+    if (result.program_output) {
+      outputText += '✅ Output:\n' + result.program_output;
+    }
+    if (result.program_error) {
+      outputText += '\n⚠️ Errors:\n' + result.program_error;
+    }
+    if (result.compiler_error) {
+      outputText += '\n❌ Compile Error:\n' + result.compiler_error;
+    }
+
+    out(outputText || '✅ Program completed successfully (no output)',
+        result.compiler_error ? 'error' : 'success');
+    status(result.compiler_error ? "Compile error." : "Run complete.");
+
+  } catch (e) {
+    out('❌ Error: ' + (e.message || String(e)), 'error');
+    status("Error.");
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

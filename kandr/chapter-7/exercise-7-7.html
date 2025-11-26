@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exercise 7.7: Find - K&R C Programming</title>
+
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      height: 100vh; display: flex; flex-direction: column;
+      background: #0b1020; color: #e5e7eb;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0f172a;
+    }
+    header h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    header .breadcrumb {
+      font-size: 0.9rem; color: #9ca3af;
+      margin-left: auto;
+    }
+    header .breadcrumb a {
+      color: #60a5fa; text-decoration: none;
+    }
+    header .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    button {
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      border: 1px solid #334155; background: #111827; color: #e5e7eb;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:hover { background: #1f2937; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .main {
+      flex: 1; display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      min-height: 0;
+    }
+    #editor { height: 100%; }
+    .right {
+      border-left: 1px solid #1f2937;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel {
+      padding: 0.6rem 0.8rem; border-bottom: 1px solid #1f2937;
+      background: #0b1224; font-size: 0.9rem;
+    }
+    #status { color: #9ca3af; }
+    #output {
+      flex: 1; padding: 0.8rem; margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem; white-space: pre-wrap; overflow: auto;
+      background: #050814;
+    }
+    .success { color: #4ade80; }
+    .error { color: #fca5a5; }
+
+    footer {
+      padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #9ca3af;
+      border-top: 1px solid #1f2937; background: #0f172a;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Exercise 7.7: Find</h1>
+    <button id="runBtn" disabled>▶ Compile & Run</button>
+    <span id="status">Loading editor…</span>
+    <div class="breadcrumb">
+      <a href="../index.html">K&R Exercises</a> /
+      <a href="index.html">Chapter 7</a> /
+      Exercise 7.7
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="editor"></div>
+
+    <div class="right">
+      <div class="panel">Output</div>
+      <pre id="output">Click "Compile & Run" to execute your code...</pre>
+    </div>
+  </div>
+
+  <footer>
+    K&R C Programming Language Exercises • Wandbox API • Monaco Editor
+  </footer>
+
+<script>
+let editor = null;
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LINE_LEN 1000
+
+typedef enum
+{
+  false,
+  true
+} boolean;
+
+boolean parse_arg_list(int argc, char *argv[]);
+void find_pattern(char *pattern, FILE *file_p);
+
+char *program_name;
+
+boolean except = false;
+boolean number = false;
+
+int pattern_arg_pos = 1;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    exit(EXIT_FAILURE);
+  }
+
+  if (argc - pattern_arg_pos > 1)
+  {
+    for (int file_arg_pos = pattern_arg_pos + 1; file_arg_pos < argc; file_arg_pos++)
+    {
+      FILE *file_p;
+      if ((file_p = fopen(argv[file_arg_pos], "r")) == NULL)
+      {
+        fprintf(stderr, "%s: can't open %s.\\n", program_name, argv[file_arg_pos]);
+        exit(EXIT_FAILURE);
+      }
+      printf("%s\\n", argv[file_arg_pos]);
+      find_pattern(argv[pattern_arg_pos], file_p);
+      fclose(file_p);
+
+      if (file_arg_pos < argc - 1)
+      {
+        putc('\\n', stdout);
+      }
+    }
+  }
+  else
+  {
+    find_pattern(argv[pattern_arg_pos], stdin);
+  }
+
+  exit(EXIT_SUCCESS);
+}
+
+boolean parse_arg_list(int argc, char *argv[])
+{
+  program_name = argv[0];
+
+  if (argc < 3)
+  {
+    fprintf(stderr, "Usage: %s [-xn]... PATTERN [FILE]...\\n", program_name);
+    return false;
+  }
+
+  while (--argc > 0 && (*++argv)[0] == '-')
+  {
+    int c;
+    while ((c = *++argv[0]))
+    {
+      switch (c)
+      {
+      case 'x':
+        except = true;
+        break;
+
+      case 'n':
+        number = true;
+        break;
+
+      default:
+        fprintf(stderr, "%s: illegal option %c.\\n", program_name, c);
+        return false;
+        break;
+      }
+    }
+
+    ++pattern_arg_pos;
+  }
+
+  return true;
+}
+
+void find_pattern(char *pattern, FILE *file_p)
+{
+  size_t line_number = 1;
+  char line[MAX_LINE_LEN];
+  while (fgets(line, MAX_LINE_LEN, file_p) != NULL)
+  {
+    if ((strstr(line, pattern) != NULL) != except)
+    {
+      if (number)
+      {
+        printf("%ld: ", line_number);
+      }
+      printf("%s", line);
+    }
+    ++line_number;
+  }
+}
+
+// NOTE: run: ./find -n "Some people" file_1.txt file_2.txt
+`,
+    language: "c",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true
+  });
+
+  runBtn.disabled = false;
+  status("Editor ready. Press Compile & Run.");
+});
+
+const runBtn = document.getElementById("runBtn");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+
+function status(msg){ statusEl.textContent = msg; }
+function out(msg="", className=""){
+  outputEl.textContent = msg;
+  outputEl.className = className;
+}
+
+runBtn.addEventListener("click", async () => {
+  out("Compiling and running...");
+  status("Running...");
+  runBtn.disabled = true;
+
+  const code = editor.getValue();
+
+  try {
+    const response = await fetch('https://wandbox.org/api/compile.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        compiler: 'gcc-head',
+        code: code,
+        options: 'warning,gnu++1y',
+        stdin: '',
+        'compiler-option-raw': '-lm'
+      })
+    });
+
+    const result = await response.json();
+
+    let outputText = '';
+    if (result.program_output) {
+      outputText += '✅ Output:\n' + result.program_output;
+    }
+    if (result.program_error) {
+      outputText += '\n⚠️ Errors:\n' + result.program_error;
+    }
+    if (result.compiler_error) {
+      outputText += '\n❌ Compile Error:\n' + result.compiler_error;
+    }
+
+    out(outputText || '✅ Program completed successfully (no output)',
+        result.compiler_error ? 'error' : 'success');
+    status(result.compiler_error ? "Compile error." : "Run complete.");
+
+  } catch (e) {
+    out('❌ Error: ' + (e.message || String(e)), 'error');
+    status("Error.");
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1677 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>K&R 2e Solutions - Chapter 6</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f172a;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1020 40%, #0b1020 100%);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--accent); }
+    .card h3 { margin: 12px 0 6px; font-size: 16px; color: var(--accent2); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    pre {
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    a { color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <h1>Chapter 6 ? C solutions</h1>
+    <p class="subtitle">Each exercise folder from the repository, with its C source displayed inline.</p>
+    <div class="nav">
+      <a href="kandr-index.html">? Back to index</a>
+      <a href="kandr-chapter-1.html">Chapter 1</a>
+      <a href="kandr-chapter-2.html">Chapter 2</a>
+      <a href="kandr-chapter-3.html">Chapter 3</a>
+      <a href="kandr-chapter-4.html">Chapter 4</a>
+      <a href="kandr-chapter-5.html">Chapter 5</a>
+      <a href="kandr-chapter-7.html">Chapter 7</a>
+      <a href="kandr-chapter-8.html">Chapter 8</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Exercise 6.01</h2>
+      <p class="meta">chapter_6\exercise_6_01</p>
+      <h3>count_c_keywords.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_WORD_LEN 100
+#define NR_OF_KEYS sizeof(keytab) / sizeof(keytab[0])
+
+struct key
+{
+  char *word;
+  int count;
+};
+
+void skip_blanks();
+void skip_comments();
+void skip_chars_between(char start, char end);
+void skip_char_literal();
+void skip_string_literal();
+
+int get_word(char *word, int max_word_len);
+int bin_search(char *word, struct key arr[], int arr_len);
+
+struct key keytab[] = {
+    {&quot;auto&quot;, 0},
+    {&quot;break&quot;, 0},
+    {&quot;case&quot;, 0},
+    {&quot;char&quot;, 0},
+    {&quot;const&quot;, 0},
+    {&quot;continue&quot;, 0},
+    {&quot;default&quot;, 0},
+    {&quot;do&quot;, 0},
+    {&quot;double&quot;, 0},
+    {&quot;else&quot;, 0},
+    {&quot;enum&quot;, 0},
+    {&quot;extern&quot;, 0},
+    {&quot;float&quot;, 0},
+    {&quot;for&quot;, 0},
+    {&quot;goto&quot;, 0},
+    {&quot;if&quot;, 0},
+    {&quot;int&quot;, 0},
+    {&quot;long&quot;, 0},
+    {&quot;register&quot;, 0},
+    {&quot;return&quot;, 0},
+    {&quot;short&quot;, 0},
+    {&quot;signed&quot;, 0},
+    {&quot;size_t&quot;, 0},
+    {&quot;sizeof&quot;, 0},
+    {&quot;static&quot;, 0},
+    {&quot;struct&quot;, 0},
+    {&quot;switch&quot;, 0},
+    {&quot;typedef&quot;, 0},
+    {&quot;union&quot;, 0},
+    {&quot;unsigned&quot;, 0},
+    {&quot;void&quot;, 0},
+    {&quot;volatile&quot;, 0},
+    {&quot;while&quot;, 0},
+};
+
+int main(void)
+{
+  int n;
+  char word[MAX_WORD_LEN];
+
+  while (get_word(word, MAX_WORD_LEN) != EOF)
+  {
+    if (isalpha(word[0]))
+    {
+      if ((n = bin_search(word, keytab, NR_OF_KEYS)) &gt;= 0)
+      {
+        keytab[n].count++;
+      }
+    }
+  }
+
+  for (size_t i = 0; i &lt; NR_OF_KEYS; ++i)
+  {
+    if (keytab[i].count)
+    {
+      printf(&quot;%4d %s\n&quot;, keytab[i].count, keytab[i].word);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+void skip_comments()
+{
+  int c = getc(stdin);
+  if (c == &#x27;/&#x27;)
+  {
+    c = getc(stdin);
+    if (c == &#x27;/&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;\n&#x27; &amp;&amp; c != EOF)
+        ;
+    }
+    else if (c == &#x27;*&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;*&#x27; &amp;&amp; c != EOF)
+        ;
+      c = getc(stdin);
+      if (c == &#x27;/&#x27;)
+      {
+        ungetc(&#x27;\n&#x27;, stdin);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void skip_chars_between(char start, char end)
+{
+  int c = getc(stdin);
+  if (c == start)
+  {
+    while ((c = getc(stdin)) != EOF)
+    {
+      if (c == &#x27;\\&#x27;)
+      {
+        if ((c = getc(stdin)) == EOF)
+        {
+          break;
+        }
+      }
+      else if (c == end)
+      {
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void skip_char_literal(void)
+{
+  skip_chars_between(&#x27;\&#x27;&#x27;, &#x27;\&#x27;&#x27;);
+}
+
+void skip_string_literal(void)
+{
+  skip_chars_between(&#x27;&quot;&#x27;, &#x27;&quot;&#x27;);
+}
+
+int get_word(char *word, int max_word_len)
+{
+  skip_blanks();
+  skip_comments();
+  skip_char_literal();
+  skip_string_literal();
+
+  int c = getc(stdin);
+  size_t i = 0;
+
+  if (c != EOF)
+  {
+    word[i++] = c;
+  }
+
+  if (!isalpha(c) &amp;&amp; c != &#x27;_&#x27;)
+  {
+    word[i] = &#x27;\0&#x27;;
+    return c;
+  }
+
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_word_len)
+  {
+    word[i++] = c;
+  }
+  ungetc(c, stdin);
+  word[i] = &#x27;\0&#x27;;
+
+  return word[0];
+}
+
+int bin_search(char *word, struct key arr[], int arr_len)
+{
+  int low = 0;
+  int high = arr_len - 1;
+  int mid;
+
+  while (low &lt;= high)
+  {
+    mid = (low + high) / 2;
+
+    int cond = strcmp(word, arr[mid].word);
+    if (cond &lt; 0)
+    {
+      high = mid - 1;
+    }
+    else if (cond &gt; 0)
+    {
+      low = mid + 1;
+    }
+    else
+    {
+      return mid;
+    }
+  }
+
+  return -1;
+}
+
+// NOTE: run: ./count_c_keywords &lt; count_c_keywords.c
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 6.02</h2>
+      <p class="meta">chapter_6\exercise_6_02</p>
+      <h3>var_group.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_WORD_LEN 100
+#define NR_OF_TYPES sizeof(data_types) / sizeof(data_types[0])
+
+struct tree_node
+{
+  char *word;
+  struct tree_node *left;
+  struct tree_node *right;
+};
+
+struct list_node
+{
+  struct tree_node *var_group;
+  struct list_node *next;
+};
+
+struct tree_node *add_to_tree(struct tree_node *node_p, char *word);
+void print_tree(struct tree_node *node_p);
+
+struct list_node *add_to_list(struct list_node *list_node_p, char *word);
+void print_list(struct list_node *node_p);
+
+int parse_arg_list(int argc, char *argv[]);
+
+// There is a strdup available with POSIX, but it&#x27;s not part of ISO C.
+char *str_dup(char *src);
+
+void skip_blanks();
+void skip_comments();
+void skip_chars_between(char start, char end);
+void skip_char_literal(void);
+void skip_string_literal(void);
+
+int get_word(char *word, int max_word_len);
+int bin_search(char *word, char *arr[], int arr_len);
+
+char *data_types[] = {
+    &quot;char&quot;,
+    &quot;double&quot;,
+    &quot;float&quot;,
+    &quot;int&quot;,
+    &quot;long&quot;,
+    &quot;short&quot;,
+    &quot;void&quot;,
+};
+
+int var_name_str_cmp_len = 6;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  int n;
+  struct list_node *list_root = NULL;
+  char word[MAX_WORD_LEN];
+
+  while (get_word(word, MAX_WORD_LEN) != EOF)
+  {
+    if ((n = bin_search(word, data_types, NR_OF_TYPES)) &gt;= 0)
+    {
+      do
+      {
+        // NOTE: This approach takes into consideration both variable and function names.
+        if (get_word(word, MAX_WORD_LEN) != EOF &amp;&amp; (isalpha(word[0]) || word[0] == &#x27;_&#x27;))
+        {
+          list_root = add_to_list(list_root, word);
+        }
+      } while (get_word(word, MAX_WORD_LEN) == &#x27;,&#x27;);
+    }
+  }
+
+  print_list(list_root);
+
+  return EXIT_SUCCESS;
+}
+
+int parse_arg_list(int argc, char *argv[])
+{
+  if (argc &gt; 2)
+  {
+    return 0;
+  }
+
+  if (argc == 2)
+  {
+    if (!isdigit(argv[1][0]))
+    {
+      return 0;
+    }
+
+    var_name_str_cmp_len = atoi(argv[1]);
+
+    if (var_name_str_cmp_len &lt; 0)
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+char *str_dup(char *src)
+{
+  char *dest = (char *)malloc(strlen(src) + 1);
+  if (dest != NULL)
+  {
+    strcpy(dest, src);
+  }
+  return dest;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+void skip_comments()
+{
+  int c = getc(stdin);
+  if (c == &#x27;/&#x27;)
+  {
+    c = getc(stdin);
+    if (c == &#x27;/&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;\n&#x27; &amp;&amp; c != EOF)
+        ;
+    }
+    else if (c == &#x27;*&#x27;)
+    {
+      while ((c = getc(stdin)) != &#x27;*&#x27; &amp;&amp; c != EOF)
+        ;
+      c = getc(stdin);
+      if (c == &#x27;/&#x27;)
+      {
+        ungetc(&#x27;\n&#x27;, stdin);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void skip_chars_between(char start, char end)
+{
+  int c = getc(stdin);
+  if (c == start)
+  {
+    while ((c = getc(stdin)) != EOF)
+    {
+      if (c == &#x27;\\&#x27;)
+      {
+        if ((c = getc(stdin)) == EOF)
+        {
+          break;
+        }
+      }
+      else if (c == end)
+      {
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void skip_char_literal(void)
+{
+  skip_chars_between(&#x27;\&#x27;&#x27;, &#x27;\&#x27;&#x27;);
+}
+
+void skip_string_literal(void)
+{
+  skip_chars_between(&#x27;&quot;&#x27;, &#x27;&quot;&#x27;);
+}
+
+int get_word(char *word, int max_word_len)
+{
+  skip_blanks();
+  skip_comments();
+  skip_char_literal();
+  skip_string_literal();
+
+  int c = getc(stdin);
+  size_t i = 0;
+
+  if (c != EOF)
+  {
+    word[i++] = c;
+  }
+
+  if (!isalpha(c) &amp;&amp; c != &#x27;_&#x27;)
+  {
+    word[i] = &#x27;\0&#x27;;
+    return c;
+  }
+
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_word_len)
+  {
+    word[i++] = c;
+  }
+  ungetc(c, stdin);
+  word[i] = &#x27;\0&#x27;;
+
+  return word[0];
+}
+
+int bin_search(char *word, char *arr[], int arr_len)
+{
+  int low = 0;
+  int high = arr_len - 1;
+  int mid;
+
+  while (low &lt;= high)
+  {
+    mid = (low + high) / 2;
+
+    int cond = strcmp(word, arr[mid]);
+    if (cond &lt; 0)
+    {
+      high = mid - 1;
+    }
+    else if (cond &gt; 0)
+    {
+      low = mid + 1;
+    }
+    else
+    {
+      return mid;
+    }
+  }
+
+  return -1;
+}
+
+struct tree_node *add_to_tree(struct tree_node *node_p, char *word)
+{
+  int cond;
+
+  if (node_p == NULL)
+  {
+    node_p = (struct tree_node *)malloc(sizeof(struct tree_node));
+    node_p-&gt;word = str_dup(word);
+    node_p-&gt;left = node_p-&gt;right = NULL;
+  }
+  else if ((cond = strcmp(word, node_p-&gt;word)) != 0)
+  {
+    if (cond &lt; 0)
+    {
+      node_p-&gt;left = add_to_tree(node_p-&gt;left, word);
+    }
+    else if (cond &gt; 0)
+    {
+      node_p-&gt;right = add_to_tree(node_p-&gt;right, word);
+    }
+  }
+
+  return node_p;
+}
+
+void print_tree(struct tree_node *node_p)
+{
+  if (node_p != NULL)
+  {
+    print_tree(node_p-&gt;left);
+    puts(node_p-&gt;word);
+    print_tree(node_p-&gt;right);
+  }
+}
+
+struct list_node *add_to_list(struct list_node *list_node_p, char *word)
+{
+  if (list_node_p == NULL)
+  {
+    list_node_p = (struct list_node *)malloc(sizeof(struct list_node));
+    list_node_p-&gt;var_group = add_to_tree(list_node_p-&gt;var_group, word);
+  }
+  else if (strncmp(list_node_p-&gt;var_group-&gt;word, word, var_name_str_cmp_len) == 0)
+  {
+    list_node_p-&gt;var_group = add_to_tree(list_node_p-&gt;var_group, word);
+  }
+  else
+  {
+    list_node_p-&gt;next = add_to_list(list_node_p-&gt;next, word);
+  }
+
+  return list_node_p;
+}
+
+void print_list(struct list_node *node_p)
+{
+  if (node_p != NULL)
+  {
+    print_tree(node_p-&gt;var_group);
+    putchar(&#x27;\n&#x27;);
+    print_list(node_p-&gt;next);
+  }
+}
+
+// NOTE: run: ./var_group 5 &lt; test.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 6.03</h2>
+      <p class="meta">chapter_6\exercise_6_03</p>
+      <h3>cross_referencer.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_WORD_LEN 100
+#define NR_OF_LINKING_WORDS sizeof(linking_words) / sizeof(linking_words[0])
+
+enum boolean
+{
+  FALSE,
+  TRUE
+};
+
+struct list_node
+{
+  size_t line_number;
+  struct list_node *next;
+};
+
+struct tree_node
+{
+  char *word;
+  struct list_node *line_numbers;
+  struct tree_node *left;
+  struct tree_node *right;
+};
+
+struct list_node *add_to_list(struct list_node *list_node_p, size_t line_number);
+void print_list(struct list_node *node_p);
+
+struct tree_node *add_to_tree(struct tree_node *node_p, char *word, size_t line_number);
+void print_tree(struct tree_node *node_p);
+
+// There is a strdup available with POSIX, but it&#x27;s not part of ISO C.
+char *str_dup(char *src);
+
+void skip_blanks();
+
+int get_word(char *word, int max_word_len);
+int bin_search(char *word, char *arr[], int arr_len);
+
+char *linking_words[] = {
+    &quot;And&quot;,
+    &quot;As&quot;,
+    &quot;But&quot;,
+    &quot;For&quot;,
+    &quot;Like&quot;,
+    &quot;Nor&quot;,
+    &quot;Or&quot;,
+    &quot;So&quot;,
+    &quot;The&quot;,
+    &quot;Then&quot;,
+    &quot;To&quot;,
+    &quot;Too&quot;,
+    &quot;Yet&quot;,
+    &quot;and&quot;,
+    &quot;as&quot;,
+    &quot;but&quot;,
+    &quot;for&quot;,
+    &quot;like&quot;,
+    &quot;nor&quot;,
+    &quot;or&quot;,
+    &quot;so&quot;,
+    &quot;the&quot;,
+    &quot;then&quot;,
+    &quot;to&quot;,
+    &quot;too&quot;,
+    &quot;yet&quot;,
+};
+
+int main(void)
+{
+  size_t line_number = 1;
+  char word[MAX_WORD_LEN];
+  struct tree_node *tree_root = NULL;
+
+  while (get_word(word, MAX_WORD_LEN) != EOF)
+  {
+    if (word[0] == &#x27;\n&#x27;)
+    {
+      ++line_number;
+    }
+    else if (isalpha(word[0]))
+    {
+      if (bin_search(word, linking_words, NR_OF_LINKING_WORDS) == -1)
+      {
+        tree_root = add_to_tree(tree_root, word, line_number);
+      }
+    }
+  }
+
+  print_tree(tree_root);
+
+  return EXIT_SUCCESS;
+}
+
+char *str_dup(char *src)
+{
+  char *dest = (char *)malloc(strlen(src) + 1);
+  if (dest != NULL)
+  {
+    strcpy(dest, src);
+  }
+  return dest;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+int get_word(char *word, int max_word_len)
+{
+  skip_blanks();
+
+  int c = getc(stdin);
+  size_t i = 0;
+
+  if (c != EOF)
+  {
+    word[i++] = c;
+  }
+
+  if (!isalpha(c) &amp;&amp; c != &#x27;_&#x27;)
+  {
+    word[i] = &#x27;\0&#x27;;
+    return c;
+  }
+
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_word_len)
+  {
+    word[i++] = c;
+  }
+  ungetc(c, stdin);
+  word[i] = &#x27;\0&#x27;;
+
+  return word[0];
+}
+
+int bin_search(char *word, char *arr[], int arr_len)
+{
+  int low = 0;
+  int high = arr_len - 1;
+  int mid;
+
+  while (low &lt;= high)
+  {
+    mid = (low + high) / 2;
+
+    int cond = strcmp(word, arr[mid]);
+    if (cond &lt; 0)
+    {
+      high = mid - 1;
+    }
+    else if (cond &gt; 0)
+    {
+      low = mid + 1;
+    }
+    else
+    {
+      return mid;
+    }
+  }
+
+  return -1;
+}
+
+struct tree_node *add_to_tree(struct tree_node *node_p, char *word, size_t line_number)
+{
+  int cond;
+
+  if (node_p == NULL)
+  {
+    node_p = (struct tree_node *)malloc(sizeof(struct tree_node));
+    node_p-&gt;line_numbers = add_to_list(node_p-&gt;line_numbers, line_number);
+    node_p-&gt;word = str_dup(word);
+    node_p-&gt;left = node_p-&gt;right = NULL;
+  }
+  else if ((cond = strcmp(word, node_p-&gt;word)) == 0)
+  {
+    node_p-&gt;line_numbers = add_to_list(node_p-&gt;line_numbers, line_number);
+  }
+  else if (cond &lt; 0)
+  {
+    node_p-&gt;left = add_to_tree(node_p-&gt;left, word, line_number);
+  }
+  else if (cond &gt; 0)
+  {
+    node_p-&gt;right = add_to_tree(node_p-&gt;right, word, line_number);
+  }
+
+  return node_p;
+}
+
+void print_tree(struct tree_node *node_p)
+{
+  if (node_p != NULL)
+  {
+    print_tree(node_p-&gt;left);
+    printf(&quot;%s: &quot;, node_p-&gt;word);
+    print_list(node_p-&gt;line_numbers);
+    putchar(&#x27;\n&#x27;);
+    print_tree(node_p-&gt;right);
+  }
+}
+
+struct list_node *add_to_list(struct list_node *list_node_p, size_t line_number)
+{
+  if (list_node_p == NULL)
+  {
+    list_node_p = (struct list_node *)malloc(sizeof(struct list_node));
+    list_node_p-&gt;line_number = line_number;
+    list_node_p-&gt;next = NULL;
+  }
+  else
+  {
+    list_node_p-&gt;next = add_to_list(list_node_p-&gt;next, line_number);
+  }
+
+  return list_node_p;
+}
+
+void print_list(struct list_node *node_p)
+{
+  static enum boolean first = TRUE;
+  if (node_p != NULL)
+  {
+    if (first)
+    {
+      first = FALSE;
+      printf(&quot;%zu&quot;, node_p-&gt;line_number);
+    }
+    else
+    {
+      printf(&quot;, %zu&quot;, node_p-&gt;line_number);
+    }
+
+    print_list(node_p-&gt;next);
+  }
+  else
+  {
+    first = TRUE;
+  }
+}
+
+// NOTE: run: ./cross_referencer &lt; test.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 6.04</h2>
+      <p class="meta">chapter_6\exercise_6_04</p>
+      <h3>words_frequency.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_WORD_LEN 100
+#define MAX_NR_OF_NODES 1000
+
+struct tree_node
+{
+  char *word;
+  int count;
+  struct tree_node *left;
+  struct tree_node *right;
+};
+
+struct tree_node *add_to_tree(struct tree_node *node_p, char *word);
+void print_tree(struct tree_node *node_p);
+void copy_tree_to_array(struct tree_node *arr[], struct tree_node *tree_node_p);
+
+// There is a strdup available with POSIX, but it&#x27;s not part of ISO C.
+char *str_dup(char *src);
+
+void skip_blanks();
+
+int get_word(char *word, int max_word_len);
+int tree_node_cmp(const struct tree_node *node_p_1, const struct tree_node *node_p_2);
+void swap(void *v[], size_t i, size_t j);
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *));
+
+size_t nr_of_nodes = 0;
+
+int main(void)
+{
+  struct tree_node *tree_root = NULL;
+  char word[MAX_WORD_LEN];
+
+  while (get_word(word, MAX_WORD_LEN) != EOF)
+  {
+    if (isalpha(word[0]))
+    {
+      tree_root = add_to_tree(tree_root, word);
+    }
+  }
+
+  struct tree_node *tree_node_list[MAX_NR_OF_NODES] = {NULL};
+  copy_tree_to_array(tree_node_list, tree_root);
+
+  quick_sort((void **)tree_node_list, 0, nr_of_nodes - 1, (int (*)(void *, void *))tree_node_cmp);
+
+  for (size_t i = 0; i &lt; nr_of_nodes; ++i)
+  {
+    printf(&quot;%4d %s\n&quot;, tree_node_list[i]-&gt;count, tree_node_list[i]-&gt;word);
+  }
+
+  return EXIT_SUCCESS;
+}
+
+char *str_dup(char *src)
+{
+  char *dest = (char *)malloc(strlen(src) + 1);
+  if (dest != NULL)
+  {
+    strcpy(dest, src);
+  }
+  return dest;
+}
+
+void skip_blanks()
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+    ;
+  ungetc(c, stdin);
+}
+
+int get_word(char *word, int max_word_len)
+{
+  skip_blanks();
+
+  int c = getc(stdin);
+  size_t i = 0;
+
+  if (c != EOF)
+  {
+    word[i++] = c;
+  }
+
+  if (!isalpha(c) &amp;&amp; c != &#x27;_&#x27;)
+  {
+    word[i] = &#x27;\0&#x27;;
+    return c;
+  }
+
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_word_len)
+  {
+    word[i++] = c;
+  }
+  ungetc(c, stdin);
+  word[i] = &#x27;\0&#x27;;
+
+  return word[0];
+}
+
+int tree_node_cmp(const struct tree_node *node_p_1, const struct tree_node *node_p_2)
+{
+  if (node_p_1-&gt;count &gt; node_p_2-&gt;count)
+  {
+    return -1;
+  }
+  else if (node_p_1-&gt;count &lt; node_p_2-&gt;count)
+  {
+    return 1;
+  }
+
+  return 0;
+}
+
+void swap(void *v[], size_t i, size_t j)
+{
+  void *temp;
+  temp = v[i];
+  v[i] = v[j];
+  v[j] = temp;
+}
+
+void quick_sort(void *v[], size_t start, size_t end, int (*comp)(void *, void *))
+{
+  if ((long)start &gt;= (long)end)
+  {
+    return;
+  }
+
+  swap(v, start, (start + end) / 2);
+
+  size_t last = start;
+  for (size_t i = start + 1; i &lt;= end; ++i)
+  {
+    if ((*comp)(v[i], v[start]) &lt; 0)
+    {
+      swap(v, ++last, i);
+    }
+  }
+
+  swap(v, start, last);
+  quick_sort(v, start, last - 1, comp);
+  quick_sort(v, last + 1, end, comp);
+}
+
+struct tree_node *add_to_tree(struct tree_node *node_p, char *word)
+{
+  int cond;
+
+  if (node_p == NULL)
+  {
+    node_p = (struct tree_node *)malloc(sizeof(struct tree_node));
+    node_p-&gt;word = str_dup(word);
+    node_p-&gt;count = 1;
+    node_p-&gt;left = node_p-&gt;right = NULL;
+  }
+  else if ((cond = strcmp(word, node_p-&gt;word)) == 0)
+  {
+    node_p-&gt;count++;
+  }
+  else if (cond &lt; 0)
+  {
+    node_p-&gt;left = add_to_tree(node_p-&gt;left, word);
+  }
+  else if (cond &gt; 0)
+  {
+    node_p-&gt;right = add_to_tree(node_p-&gt;right, word);
+  }
+
+  return node_p;
+}
+
+void print_tree(struct tree_node *node_p)
+{
+  if (node_p != NULL)
+  {
+    print_tree(node_p-&gt;left);
+    printf(&quot;%4d %s\n&quot;, node_p-&gt;count, node_p-&gt;word);
+    print_tree(node_p-&gt;right);
+  }
+}
+
+void copy_tree_to_array(struct tree_node *arr[], struct tree_node *tree_node_p)
+{
+  if (tree_node_p != NULL)
+  {
+    copy_tree_to_array(arr, tree_node_p-&gt;left);
+    if (nr_of_nodes &lt; MAX_NR_OF_NODES)
+    {
+      arr[nr_of_nodes++] = tree_node_p;
+    }
+    copy_tree_to_array(arr, tree_node_p-&gt;right);
+  }
+}
+
+// NOTE: run: ./words_frequency &lt; words_frequency.c
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 6.05</h2>
+      <p class="meta">chapter_6\exercise_6_05</p>
+      <h3>undef.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define HASH_SIZE 101
+
+enum boolean
+{
+  FALSE,
+  TRUE
+};
+
+struct list_node
+{
+  char *name;
+  char *definition;
+  struct list_node *next;
+};
+
+// There is a strdup available with POSIX, but it&#x27;s not part of ISO C.
+char *str_dup(char *src);
+
+size_t hash(char *str);
+struct list_node *lookup(char *str);
+struct list_node *install(char *name, char *definition);
+enum boolean undef(char *name);
+
+static struct list_node *hash_table[HASH_SIZE];
+
+int main(void)
+{
+  install(&quot;TEST&quot;, &quot;test&quot;);
+
+  // Install other collision values for the same hash as for &quot;TEST&quot; -&gt; 51.
+  install(&quot;TSHe&quot;, &quot;test1&quot;);
+  install(&quot;UPXD&quot;, &quot;test2&quot;);
+  install(&quot;9iww&quot;, &quot;test3&quot;);
+  install(&quot;mY1a&quot;, &quot;test4&quot;);
+  install(&quot;uuoT&quot;, &quot;test5&quot;);
+
+  struct list_node *node_p = lookup(&quot;TEST&quot;);
+  if (node_p == NULL)
+  {
+    puts(&quot;Error: hash value not found.&quot;);
+  }
+  else
+  {
+    printf(&quot;%s: %s\n&quot;, node_p-&gt;name, node_p-&gt;definition);
+    if (undef(&quot;TEST&quot;) &amp;&amp; lookup(&quot;TEST&quot;) == NULL)
+    {
+      printf(&quot;&#x27;%s&#x27; was undefined successfully.\n&quot;, &quot;TEST&quot;);
+    }
+    else
+    {
+      printf(&quot;Error: failed to undefine &#x27;%s&#x27;.\n&quot;, &quot;TEST&quot;);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+char *str_dup(char *src)
+{
+  char *dest = (char *)malloc(strlen(src) + 1);
+  if (dest != NULL)
+  {
+    strcpy(dest, src);
+  }
+  return dest;
+}
+
+size_t hash(char *str)
+{
+  size_t hash_value = 0;
+  while (*str != &#x27;\0&#x27;)
+  {
+    hash_value = *str + 31 * hash_value;
+    ++str;
+  }
+  return hash_value % HASH_SIZE;
+}
+
+struct list_node *lookup(char *str)
+{
+  struct list_node *node_p;
+  for (node_p = hash_table[hash(str)]; node_p != NULL; node_p = node_p-&gt;next)
+  {
+    if (strcmp(str, node_p-&gt;name) == 0)
+    {
+      return node_p;
+    }
+  }
+  return NULL;
+}
+
+struct list_node *install(char *name, char *definition)
+{
+  struct list_node *node_p;
+  if ((node_p = lookup(name)) == NULL)
+  {
+    node_p = (struct list_node *)malloc(sizeof(*node_p));
+    if (node_p == NULL || (node_p-&gt;name = str_dup(name)) == NULL)
+    {
+      return NULL;
+    }
+    size_t hash_value = hash(name);
+    node_p-&gt;next = hash_table[hash_value];
+    hash_table[hash_value] = node_p;
+  }
+  else
+  {
+    free(node_p-&gt;definition);
+  }
+
+  if ((node_p-&gt;definition = str_dup(definition)) == NULL)
+  {
+    return NULL;
+  }
+
+  return node_p;
+}
+
+enum boolean undef(char *name)
+{
+  struct list_node *node_p;
+  struct list_node *prev_node_p;
+  size_t hash_value = hash(name);
+  for (node_p = hash_table[hash_value], prev_node_p = NULL;
+       node_p != NULL;
+       prev_node_p = node_p, node_p = node_p-&gt;next)
+  {
+    if (strcmp(name, node_p-&gt;name) == 0)
+    {
+      free(node_p-&gt;name);
+      free(node_p-&gt;definition);
+
+      if (prev_node_p == NULL)
+      {
+        hash_table[hash_value] = node_p-&gt;next;
+      }
+      else
+      {
+        prev_node_p-&gt;next = node_p-&gt;next;
+      }
+
+      free(node_p);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 6.06</h2>
+      <p class="meta">chapter_6\exercise_6_06</p>
+      <h3>define.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define HASH_SIZE 101
+#define MAX_LINE_LEN 1000
+#define MAX_WORD_LEN 100
+
+enum boolean
+{
+  FALSE,
+  TRUE
+};
+
+enum directive_type
+{
+  NONE = 0,
+  DEFINE = 1,
+  UNDEF = 2
+};
+
+struct list_node
+{
+  char *name;
+  char *definition;
+  struct list_node *next;
+};
+
+// There is a strdup available with POSIX, but it&#x27;s not part of ISO C.
+char *str_dup(char *src);
+
+size_t hash(char *str);
+struct list_node *lookup(char *str);
+struct list_node *install(char *name, char *definition);
+enum boolean undef(char *name);
+
+int get_word(char *word, size_t max_word_len);
+size_t get_alnum_str(char *str, size_t max_str_len);
+
+void consume_word(char *word, char *Error_str);
+void consume_blanks(void);
+void consume_comments(void);
+void consume_chars_between(char start, char end);
+void consume_char_literal(void);
+void consume_string_literal(void);
+void consume_preproc(void);
+
+static struct list_node *hash_table[HASH_SIZE];
+
+int main(void)
+{
+  int c;
+  char word[MAX_WORD_LEN];
+  while ((c = get_word(word, MAX_WORD_LEN)) != EOF)
+  {
+    if (isalpha(c))
+    {
+      struct list_node *node_p = lookup(word);
+      if (node_p != NULL)
+      {
+        printf(&quot;%s&quot;, node_p-&gt;definition);
+      }
+      else
+      {
+        printf(&quot;%s&quot;, word);
+      }
+    }
+    else
+    {
+
+      if (c == &#x27;/&#x27;)
+      {
+        ungetc(c, stdin);
+        consume_comments();
+      }
+      else if (c == &#x27;\&#x27;&#x27;)
+      {
+        ungetc(c, stdin);
+        consume_char_literal();
+      }
+      else if (c == &#x27;&quot;&#x27;)
+      {
+        ungetc(c, stdin);
+        consume_string_literal();
+      }
+      else if (c == &#x27;#&#x27;)
+      {
+        ungetc(c, stdin);
+        consume_preproc();
+      }
+      else
+      {
+        putc(c, stdout);
+      }
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+char *str_dup(char *src)
+{
+  char *dest = (char *)malloc(strlen(src) + 1);
+  if (dest != NULL)
+  {
+    strcpy(dest, src);
+  }
+  return dest;
+}
+
+size_t hash(char *str)
+{
+  size_t hash_value = 0;
+  while (*str != &#x27;\0&#x27;)
+  {
+    hash_value = *str + 31 * hash_value;
+    ++str;
+  }
+  return hash_value % HASH_SIZE;
+}
+
+struct list_node *lookup(char *str)
+{
+  struct list_node *node_p;
+  for (node_p = hash_table[hash(str)]; node_p != NULL; node_p = node_p-&gt;next)
+  {
+    if (strcmp(str, node_p-&gt;name) == 0)
+    {
+      return node_p;
+    }
+  }
+  return NULL;
+}
+
+struct list_node *install(char *name, char *definition)
+{
+  struct list_node *node_p;
+  if ((node_p = lookup(name)) == NULL)
+  {
+    node_p = (struct list_node *)malloc(sizeof(*node_p));
+    if (node_p == NULL || (node_p-&gt;name = str_dup(name)) == NULL)
+    {
+      return NULL;
+    }
+    size_t hash_value = hash(name);
+    node_p-&gt;next = hash_table[hash_value];
+    hash_table[hash_value] = node_p;
+  }
+  else
+  {
+    free(node_p-&gt;definition);
+  }
+
+  if ((node_p-&gt;definition = str_dup(definition)) == NULL)
+  {
+    return NULL;
+  }
+
+  return node_p;
+}
+
+enum boolean undef(char *name)
+{
+  struct list_node *node_p;
+  struct list_node *prev_node_p;
+  size_t hash_value = hash(name);
+  for (node_p = hash_table[hash_value], prev_node_p = NULL;
+       node_p != NULL;
+       prev_node_p = node_p, node_p = node_p-&gt;next)
+  {
+    if (strcmp(name, node_p-&gt;name) == 0)
+    {
+      free(node_p-&gt;name);
+      free(node_p-&gt;definition);
+
+      if (prev_node_p == NULL)
+      {
+        hash_table[hash_value] = node_p-&gt;next;
+      }
+      else
+      {
+        prev_node_p-&gt;next = node_p-&gt;next;
+      }
+
+      free(node_p);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+int get_word(char *word, size_t max_word_len)
+{
+  int c = getc(stdin);
+  size_t i = 0;
+
+  if (c != EOF)
+  {
+    word[i++] = c;
+  }
+
+  if (!isalpha(c) &amp;&amp; c != &#x27;_&#x27;)
+  {
+    word[i] = &#x27;\0&#x27;;
+    return c;
+  }
+
+  while ((isalnum(c = getc(stdin)) || c == &#x27;_&#x27;) &amp;&amp; i &lt; max_word_len)
+  {
+    word[i++] = c;
+  }
+  ungetc(c, stdin);
+  word[i] = &#x27;\0&#x27;;
+
+  return word[0];
+}
+
+size_t get_alnum_str(char *str, size_t max_str_len)
+{
+  size_t i = 0;
+  int c;
+  while (isalnum(c = getc(stdin)) &amp;&amp; i &lt; max_str_len)
+  {
+    str[i++] = c;
+  }
+  str[i] = &#x27;\0&#x27;;
+  ungetc(c, stdin);
+  return i;
+}
+
+void consume_word(char *word, char *Error_str)
+{
+  int c;
+  if ((c = get_word(word, MAX_WORD_LEN)) == EOF)
+  {
+    ungetc(c, stdin);
+    return;
+  }
+  else if (!isalpha(c))
+  {
+    puts(Error_str);
+  }
+  printf(&quot;%s&quot;, word);
+}
+
+void consume_blanks(void)
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+  {
+    putc(c, stdout);
+  }
+  ungetc(c, stdin);
+}
+
+void consume_comments(void)
+{
+  int c = getc(stdin);
+  if (c == &#x27;/&#x27;)
+  {
+    putc(c, stdout);
+
+    c = getc(stdin);
+    if (c == &#x27;/&#x27;)
+    {
+      putc(c, stdout);
+      while ((c = getc(stdin)) != &#x27;\n&#x27; &amp;&amp; c != EOF)
+      {
+        putc(c, stdout);
+      }
+    }
+    else if (c == &#x27;*&#x27;)
+    {
+      putc(c, stdout);
+      while ((c = getc(stdin)) != EOF)
+      {
+        putc(c, stdout);
+        if (c == &#x27;*&#x27;)
+        {
+          c = getc(stdin);
+          putc(c, stdout);
+          if (c == &#x27;/&#x27;)
+          {
+            break;
+          }
+        }
+      }
+
+      c = getc(stdin);
+      if (c == &#x27;/&#x27;)
+      {
+        putc(c, stdout);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void consume_chars_between(char start, char end)
+{
+  int c = getc(stdin);
+  if (c == start)
+  {
+    putc(c, stdout);
+    while ((c = getc(stdin)) != EOF)
+    {
+      putc(c, stdout);
+      if (c == &#x27;\\&#x27;)
+      {
+        c = getc(stdin);
+        putc(c, stdout);
+        if (c == EOF)
+        {
+          break;
+        }
+      }
+      else if (c == end)
+      {
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void consume_char_literal(void)
+{
+  consume_chars_between(&#x27;\&#x27;&#x27;, &#x27;\&#x27;&#x27;);
+}
+
+void consume_string_literal(void)
+{
+  consume_chars_between(&#x27;&quot;&#x27;, &#x27;&quot;&#x27;);
+}
+
+void consume_preproc(void)
+{
+  int c = getc(stdin);
+  if (c == &#x27;#&#x27;)
+  {
+    putc(c, stdout);
+
+    char word[MAX_WORD_LEN];
+    consume_word(word, &quot;Error: expected preprocessor directive.&quot;);
+
+    enum directive_type directive = NONE;
+    if (strcmp(word, &quot;define&quot;) == 0)
+    {
+      directive = DEFINE;
+    }
+    else if (strcmp(word, &quot;undef&quot;) == 0)
+    {
+      directive = UNDEF;
+    }
+
+    if (directive)
+    {
+      consume_blanks();
+      consume_word(word, &quot;Error: invalid name.&quot;);
+    }
+
+    if (directive == DEFINE)
+    {
+      consume_blanks();
+      char definition[MAX_WORD_LEN];
+      get_alnum_str(definition, MAX_WORD_LEN);
+      printf(&quot;%s&quot;, definition);
+
+      struct list_node *node_p = lookup(definition);
+      if (node_p != NULL)
+      {
+        install(word, node_p-&gt;definition);
+      }
+      else
+      {
+        install(word, definition);
+      }
+    }
+    else if (directive == UNDEF)
+    {
+      undef(word);
+    }
+  }
+  else
+  {
+    ungetc(c, stdin);
+  }
+}
+
+// NOTE: run: ./define &lt; define.c
+
+      </code></pre>
+    </div>
+    <footer>Generated from OutisNemosseus/the-c-programming-language-2nd-edition-solutions ? Chapter page</footer>
+  </main>
+</body>
+</html>

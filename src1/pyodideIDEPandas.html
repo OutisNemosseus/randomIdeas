@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pyodide Pandas IDE (Browser-only)</title>
+
+  <!-- Monaco loader -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --bg2:#0f172a;
+      --panel:#050814;
+      --line:#1f2937;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#60a5fa;
+      --danger:#fca5a5;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      font-family: system-ui,-apple-system,Segoe UI,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      gap:.6rem;
+      padding:.55rem .9rem;
+      background:var(--bg2);
+      border-bottom:1px solid var(--line);
+      flex-wrap:wrap;
+    }
+    header h1{ font-size:1rem; margin:0; font-weight:600; }
+
+    .tabs{
+      display:flex; gap:.35rem; margin-left:.5rem;
+      background:#0b1224; padding:.2rem; border-radius:999px;
+      border:1px solid var(--line);
+    }
+    .tab{
+      padding:.25rem .75rem;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:.88rem;
+      color:var(--muted);
+      user-select:none;
+    }
+    .tab.active{
+      background:#111827;
+      color:var(--text);
+      border:1px solid #334155;
+    }
+
+    button{
+      padding:.32rem .85rem;
+      border-radius:999px;
+      border:1px solid #334155;
+      background:#111827;
+      color:var(--text);
+      cursor:pointer;
+      font-size:.9rem;
+    }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    input[type="file"]{
+      font-size:.9rem; color:var(--muted);
+    }
+
+    #status{ color:var(--muted); font-size:.9rem; margin-left:auto; }
+
+    .main{
+      flex:1;
+      min-height:0;
+      display:grid;
+      grid-template-columns:1.25fr .75fr;
+    }
+
+    /* Left editor */
+    .left{
+      display:flex; flex-direction:column; min-height:0;
+      border-right:1px solid var(--line);
+    }
+    #editor{
+      flex:1; min-height:0;
+    }
+    .hint{
+      padding:.45rem .7rem;
+      font-size:.85rem;
+      color:var(--muted);
+      border-top:1px solid var(--line);
+      background:#0b1224;
+      line-height:1.45;
+    }
+    .hint code{ color:#cbd5e1; }
+
+    /* Right output */
+    .right{
+      display:flex; flex-direction:column; min-height:0;
+      background:var(--panel);
+    }
+    .right-head{
+      padding:.55rem .8rem;
+      border-bottom:1px solid var(--line);
+      background:#0b1224;
+      display:flex; align-items:center; gap:.5rem;
+      font-size:.9rem;
+    }
+    #output{
+      flex:1; min-height:0;
+      margin:0; padding:.8rem .9rem;
+      white-space:pre-wrap; overflow:auto;
+      font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:.88rem;
+    }
+    .stderr{ color:var(--danger); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Pyodide Pandas IDE</h1>
+
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-tab="example">Example Code (pandas)</div>
+      <div class="tab" data-tab="user">Your Code</div>
+    </div>
+
+    <input id="fileInput" type="file" accept=".csv" />
+    <button id="runBtn" disabled>Run ▶</button>
+    <button id="downloadBtn" disabled>Download output.csv</button>
+
+    <span id="status">Loading Pyodide…</span>
+  </header>
+
+  <div class="main">
+    <div class="left">
+      <div id="editor"></div>
+      <div class="hint">
+        使用约定：上传的 CSV 会被写到 <code>/data/input.csv</code>。<br/>
+        你的代码里可以直接读：<code>df = pd.read_csv(IN_PATH)</code>。<br/>
+        处理后请写到：<code>OUT_PATH = "/data/output.csv"</code> 并保存：<code>df.to_csv(OUT_PATH, index=False)</code>。<br/>
+        右侧会显示 print 输出 / 报错，并解锁下载按钮。
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="right-head">
+        stdout / stderr
+      </div>
+      <pre id="output"></pre>
+    </div>
+  </div>
+
+<script>
+/* -----------------------------
+   0) Tab code contents
+----------------------------- */
+const EXAMPLE_CODE = `# Example: add two columns into a new column
+import pandas as pd
+
+# Pyodide passes these in:
+# IN_PATH  = "/data/input.csv"
+# OUT_PATH = "/data/output.csv"
+
+df = pd.read_csv(IN_PATH)
+
+# change these to your real column names or indices
+colA = df.columns[0]
+colB = df.columns[1]
+
+df["sum"] = df[colA] + df[colB]
+
+print("Columns:", list(df.columns))
+print(df.head())
+
+df.to_csv(OUT_PATH, index=False)
+print("Saved to", OUT_PATH)
+`;
+
+const USER_CODE_DEFAULT = `import pandas as pd
+
+df = pd.read_csv(IN_PATH)
+
+# TODO: write your transform here
+# Example:
+# df["sum"] = df["col1"] + df["col2"]
+
+print(df.head())
+
+df.to_csv(OUT_PATH, index=False)
+print("Saved to", OUT_PATH)
+`;
+
+/* -----------------------------
+   1) Monaco Editor setup
+----------------------------- */
+let editor = null;
+let activeTab = "example";
+let codeByTab = {
+  example: EXAMPLE_CODE,
+  user: USER_CODE_DEFAULT
+};
+
+const tabsEl = document.getElementById("tabs");
+const runBtn = document.getElementById("runBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const fileInput = document.getElementById("fileInput");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+
+function setStatus(s){ statusEl.textContent = s; }
+function setOutput(s){ outputEl.textContent = s || ""; }
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: codeByTab[activeTab],
+    language: "python",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true,
+    tabSize: 2,
+  });
+});
+
+/* Tabs switching */
+tabsEl.addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (!tab || !editor) return;
+
+  const next = tab.dataset.tab;
+  if (next === activeTab) return;
+
+  // save current editor content
+  codeByTab[activeTab] = editor.getValue();
+
+  // switch
+  activeTab = next;
+
+  // update UI
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+
+  // load new content
+  editor.setValue(codeByTab[activeTab]);
+
+  // readonly for example tab
+  editor.updateOptions({ readOnly: activeTab === "example" });
+});
+
+/* -----------------------------
+   2) Init Pyodide + pandas
+----------------------------- */
+let pyodide = null;
+let isReady = false;
+let hasInputFile = false;
+
+async function initPyodide() {
+  try {
+    setStatus("Loading Pyodide core…");
+    pyodide = await loadPyodide();
+
+    setStatus("Loading pandas…");
+    await pyodide.loadPackage(["pandas"]);
+
+    isReady = true;
+    runBtn.disabled = false;
+    setStatus("Ready. Upload CSV, then Run.");
+  } catch (e) {
+    setOutput(String(e));
+    setStatus("Pyodide init error.");
+  }
+}
+initPyodide();
+
+/* -----------------------------
+   3) Upload CSV into FS
+----------------------------- */
+async function putFileToFS(file, path="/data/input.csv") {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  pyodide.FS.mkdirTree("/data");
+  pyodide.FS.writeFile(path, bytes);
+  return path;
+}
+
+fileInput.addEventListener("change", async () => {
+  if (!isReady) return;
+  const file = fileInput.files?.[0];
+  if (!file) return;
+
+  setOutput("");
+  setStatus("Reading file…");
+  try {
+    await putFileToFS(file, "/data/input.csv");
+    hasInputFile = true;
+    setStatus(`File loaded: ${file.name}. Ready to Run.`);
+  } catch (e) {
+    setOutput(String(e));
+    setStatus("File load error.");
+  }
+});
+
+/* -----------------------------
+   4) Run active code
+   - provides IN_PATH / OUT_PATH
+   - captures stdout/stderr
+----------------------------- */
+runBtn.addEventListener("click", async () => {
+  if (!isReady) return;
+  if (!hasInputFile) {
+    setStatus("Please upload a CSV first.");
+    return;
+  }
+
+  downloadBtn.disabled = true;
+  setOutput("");
+  setStatus("Running…");
+
+  // save current tab content
+  codeByTab[activeTab] = editor.getValue();
+  const userCode = codeByTab[activeTab];
+
+  try {
+    pyodide.globals.set("IN_PATH", "/data/input.csv");
+    pyodide.globals.set("OUT_PATH", "/data/output.csv");
+
+    const runner = `
+import sys, traceback
+from io import StringIO
+
+_stdout = StringIO()
+_stderr = StringIO()
+_old_out, _old_err = sys.stdout, sys.stderr
+sys.stdout, sys.stderr = _stdout, _stderr
+
+ok = True
+try:
+${userCode.split("\n").map(l => "    "+l).join("\n")}
+except Exception:
+    ok = False
+    traceback.print_exc()
+finally:
+    sys.stdout, sys.stderr = _old_out, _old_err
+
+_out_text = _stdout.getvalue()
+_err_text = _stderr.getvalue()
+(ok, _out_text, _err_text)
+`;
+
+    const [ok, outText, errText] = await pyodide.runPythonAsync(runner);
+
+    let merged = "";
+    if (outText) merged += outText;
+    if (errText) merged += (merged ? "\n" : "") + errText;
+
+    setOutput(merged || "(no output)");
+
+    // if output file exists, enable download
+    let exists = false;
+    try {
+      pyodide.FS.stat("/data/output.csv");
+      exists = true;
+    } catch {}
+
+    if (ok && exists) {
+      downloadBtn.disabled = false;
+      setStatus("Done. output.csv ready.");
+    } else if (!ok) {
+      setStatus("Python error. See output.");
+    } else {
+      setStatus("Done. (No output.csv written)");
+    }
+
+  } catch (e) {
+    setOutput(String(e));
+    setStatus("Run failed.");
+  }
+});
+
+/* -----------------------------
+   5) Download output.csv
+----------------------------- */
+downloadBtn.addEventListener("click", () => {
+  try {
+    const outBytes = pyodide.FS.readFile("/data/output.csv");
+    const blob = new Blob([outBytes], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "output.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+    setStatus("Downloaded output.csv.");
+  } catch (e) {
+    setOutput(String(e));
+    setStatus("Download error.");
+  }
+});
+</script>
+</body>
+</html>

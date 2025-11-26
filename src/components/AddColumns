@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pyodide Pandas Column Add (Browser-only)</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1rem;
+      line-height: 1.5;
+    }
+    .row { display:flex; gap:1rem; flex-wrap:wrap; align-items:center; }
+    input[type="text"] { width:140px; padding:0.3rem 0.5rem; }
+    button {
+      padding:0.4rem 0.9rem; border-radius:999px; border:1px solid #ccc;
+      background:#f6f7f9; cursor:pointer;
+    }
+    button:disabled { opacity:0.6; cursor:not-allowed; }
+    #status { margin-top:0.8rem; color:#555; font-size:0.95rem; }
+    pre {
+      background:#0b1020; color:#e5e7eb; padding:0.8rem; border-radius:0.5rem;
+      overflow:auto; font-size:0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pyodide + Pandas: Add Two Columns</h1>
+  <p>
+    选一个 CSV 文件，输入要相加的两列名（或索引），再输入输出列名。
+    计算完成后可以下载新 CSV。
+  </p>
+
+  <div class="row">
+    <input id="fileInput" type="file" accept=".csv" />
+  </div>
+
+  <div class="row" style="margin-top:1rem;">
+    <label>Column A:</label>
+    <input id="colA" type="text" placeholder="e.g. col1 or 0" />
+    <label>Column B:</label>
+    <input id="colB" type="text" placeholder="e.g. col2 or 1" />
+    <label>Output col:</label>
+    <input id="colOut" type="text" placeholder="e.g. sum" value="sum" />
+    <button id="runBtn" disabled>Run Pandas</button>
+    <button id="downloadBtn" disabled>Download output.csv</button>
+  </div>
+
+  <div id="status">Loading Pyodide...</div>
+  <h3>Log</h3>
+  <pre id="log"></pre>
+
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+  <script type="module">
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+    const fileInput = document.getElementById("fileInput");
+    const runBtn = document.getElementById("runBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const colAEl = document.getElementById("colA");
+    const colBEl = document.getElementById("colB");
+    const colOutEl = document.getElementById("colOut");
+
+    let pyodide = null;
+    let outputReady = false;
+
+    function log(msg="") {
+      logEl.textContent += msg + "\n";
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // 1) Init Pyodide + pandas
+    async function init() {
+      statusEl.textContent = "Loading Pyodide core...";
+      pyodide = await loadPyodide();
+
+      statusEl.textContent = "Loading pandas...";
+      await pyodide.loadPackage(["pandas"]);
+
+      statusEl.textContent = "Ready. Choose a CSV.";
+      runBtn.disabled = false;
+      log("[Init] Pyodide + pandas ready.");
+    }
+    init();
+
+    // helper: read file to FS
+    async function putFileToFS(file, path="/data/input.csv") {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      pyodide.FS.mkdirTree("/data");
+      pyodide.FS.writeFile(path, bytes);
+      return path;
+    }
+
+    function parseColSpec(spec) {
+      // allow numeric index or string column name
+      const trimmed = spec.trim();
+      if (trimmed === "") return null;
+      const maybeNum = Number(trimmed);
+      return Number.isFinite(maybeNum) && trimmed.match(/^\d+$/) ? maybeNum : trimmed;
+    }
+
+    // 2) Run pandas
+    runBtn.addEventListener("click", async () => {
+      outputReady = false;
+      downloadBtn.disabled = true;
+      logEl.textContent = "";
+
+      const file = fileInput.files?.[0];
+      if (!file) {
+        statusEl.textContent = "Please choose a CSV first.";
+        return;
+      }
+
+      const colA = parseColSpec(colAEl.value);
+      const colB = parseColSpec(colBEl.value);
+      const colOut = colOutEl.value.trim() || "sum";
+
+      if (colA === null || colB === null) {
+        statusEl.textContent = "Please enter Column A and B.";
+        return;
+      }
+
+      statusEl.textContent = "Reading file...";
+      log(`[JS] File: ${file.name} (${file.size} bytes)`);
+
+      const inPath = await putFileToFS(file, "/data/input.csv");
+
+      statusEl.textContent = "Running pandas...";
+      try {
+        pyodide.globals.set("IN_PATH", inPath);
+        pyodide.globals.set("COL_A", colA);
+        pyodide.globals.set("COL_B", colB);
+        pyodide.globals.set("COL_OUT", colOut);
+
+        const py = `
+import pandas as pd
+
+df = pd.read_csv(IN_PATH)
+
+# support numeric index or name
+def get_series(df, col):
+    if isinstance(col, (int, float)):
+        idx = int(col)
+        return df.iloc[:, idx]
+    else:
+        return df[col]
+
+a = get_series(df, COL_A)
+b = get_series(df, COL_B)
+
+df[COL_OUT] = a + b
+
+out_path = "/data/output.csv"
+df.to_csv(out_path, index=False)
+
+out_path, df.head(5).to_string(index=False)
+`;
+        const [outPath, headStr] = await pyodide.runPythonAsync(py);
+
+        log("[Py] output written to: " + outPath);
+        log("[Py] preview (head):\n" + headStr);
+
+        outputReady = true;
+        downloadBtn.disabled = false;
+        statusEl.textContent = "Done. You can download output.csv.";
+      } catch (e) {
+        console.error(e);
+        log("[Error] " + String(e));
+        statusEl.textContent = "Python error. Check log.";
+      }
+    });
+
+    // 3) Download output
+    downloadBtn.addEventListener("click", () => {
+      if (!outputReady) return;
+
+      const outBytes = pyodide.FS.readFile("/data/output.csv");
+      const blob = new Blob([outBytes], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "output.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      URL.revokeObjectURL(url);
+      statusEl.textContent = "Downloaded output.csv.";
+    });
+  </script>
+</body>
+</html>

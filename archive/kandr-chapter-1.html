@@ -1,0 +1,1450 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>K&R 2e Solutions - Chapter 1</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f172a;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1020 40%, #0b1020 100%);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--accent); }
+    .card h3 { margin: 12px 0 6px; font-size: 16px; color: var(--accent2); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    pre {
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    a { color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <h1>Chapter 1 ? C solutions</h1>
+    <p class="subtitle">Each exercise folder from the repository, with its C source displayed inline.</p>
+    <div class="nav">
+      <a href="kandr-index.html">? Back to index</a>
+      <a href="kandr-chapter-2.html">Chapter 2</a>
+      <a href="kandr-chapter-3.html">Chapter 3</a>
+      <a href="kandr-chapter-4.html">Chapter 4</a>
+      <a href="kandr-chapter-5.html">Chapter 5</a>
+      <a href="kandr-chapter-6.html">Chapter 6</a>
+      <a href="kandr-chapter-7.html">Chapter 7</a>
+      <a href="kandr-chapter-8.html">Chapter 8</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Exercise 1.01</h2>
+      <p class="meta">chapter_1\exercise_1_01</p>
+      <h3>hello_world.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main(void)
+{
+  printf(&quot;hello, world\n&quot;);
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.02</h2>
+      <p class="meta">chapter_1\exercise_1_02</p>
+      <h3>printf_argument.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main(void)
+{
+  printf(&quot;hello, world\c&quot;);
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.03</h2>
+      <p class="meta">chapter_1\exercise_1_03</p>
+      <h3>fahrenheit_celsius.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+// Print Fahrenheit-Celsius table
+// for fahr = 0, 20, ... 300
+// floating point version
+
+int main(void)
+{
+  float fahr, celsius;
+  int lower, upper, step;
+
+  lower = 0;
+  upper = 300;
+  step = 20;
+
+  // Printing a heading above the table
+  printf(&quot;Fahr\tCelsius\n&quot;);
+  printf(&quot;---------------\n&quot;);
+
+  fahr = lower;
+  while (fahr &lt;= upper)
+  {
+    celsius = (5.0 / 9.0) * (fahr - 32.0);
+    printf(&quot;%3.0f\t\t%6.1f\n&quot;, fahr, celsius);
+    fahr = fahr + step;
+  }
+
+  return 0;
+}
+
+// NOTE: If all operands from an operation are integers then a integer operation
+// is performed. If at least one operand is a floating point number then a
+// floating point operation will be performed.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.04</h2>
+      <p class="meta">chapter_1\exercise_1_04</p>
+      <h3>celsius_fahrenheit.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+// Print Celsius-Fahrenheit table
+// for celsius = 0, 20, ... 300
+// floating point version
+
+int main(void)
+{
+  float celsius, fahr;
+  int lower, upper, step;
+
+  lower = 0;
+  upper = 300;
+  step = 20;
+
+  printf(&quot;Celsius\tFahr\n&quot;);
+  printf(&quot;---------------\n&quot;);
+
+  celsius = lower;
+  while (celsius &lt;= upper)
+  {
+    fahr = (9.0 / 5.0) * celsius + 32.0f;
+    printf(&quot;%3.0f\t\t%6.1f\n&quot;, celsius, fahr);
+    celsius = celsius + step;
+  }
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.05</h2>
+      <p class="meta">chapter_1\exercise_1_05</p>
+      <h3>celsius_fahrenheit.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+// Print Celsius-Fahrenheit table
+// for celsius = 0, 20, ... 300
+// floating point version with for loop
+
+int main(void)
+{
+  float celsius, fahr;
+  int lower, upper, step;
+
+  lower = 0;
+  upper = 300;
+  step = 20;
+
+  printf(&quot;Celsius\tFahr\n&quot;);
+  printf(&quot;---------------\n&quot;);
+
+  for (celsius = upper; celsius &gt;= lower; celsius = celsius - step)
+  {
+    fahr = (9.0 / 5.0) * celsius + 32.0f;
+    printf(&quot;%3.0f\t\t%6.1f\n&quot;, celsius, fahr);
+  }
+
+  return 0;
+}
+
+// NOTE: Sometimes the for loop can be more explicit and more readable then the
+// while loop because it&#x27;s more compact. The initialization and the incrementation
+// of the counter variable is done through the for loop params. However, the while
+// loop can be, sometimes, more customizable.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.06</h2>
+      <p class="meta">chapter_1\exercise_1_06</p>
+      <h3>verify_expression.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main(void)
+{
+  printf(&quot;value of expression: %d&quot;, getchar() != EOF);
+  return 0;
+}
+
+// NOTE: The expression getchar() != EOF is equal with 1 only if input char
+// is != with EOF. A useful thing to know is that on Windows the EOF char is
+// accessible with CTRL+Z, while on Unix like systems the EOF char is
+// accessible with CTRL+D.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.07</h2>
+      <p class="meta">chapter_1\exercise_1_07</p>
+      <h3>print_eof.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main(void)
+{
+  printf(&quot;EOF: %d&quot;, EOF);
+  return 0;
+}
+
+// NOTE: The value of the EOF character is -1, which is an integer.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.08</h2>
+      <p class="meta">chapter_1\exercise_1_08</p>
+      <h3>count_b_t_n.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main(void)
+{
+  int blanks_nr = 0;
+  int tabs_nr = 0;
+  int newlines_nr = 0;
+
+  char c;
+  while ((c = getchar()) != EOF)
+  {
+    if (c == &#x27; &#x27;)
+    {
+      ++blanks_nr;
+    }
+    else if (c == &#x27;\t&#x27;)
+    {
+      ++tabs_nr;
+    }
+    else if (c == &#x27;\n&#x27;)
+    {
+      ++newlines_nr;
+    }
+  }
+
+  printf(&quot;blanks_nr: %d\ntabs_nr: %d\nnewlines_nr: %d\n&quot;,
+         blanks_nr, tabs_nr, newlines_nr);
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.09</h2>
+      <p class="meta">chapter_1\exercise_1_09</p>
+      <h3>copy_io.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main(void)
+{
+  int c;
+  int last_c = &#x27;\0&#x27;;
+
+  while ((c = getchar()) != EOF)
+  {
+    if (c != &#x27; &#x27; || last_c != &#x27; &#x27;)
+    {
+      putchar(c);
+    }
+
+    last_c = c;
+  }
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.10</h2>
+      <p class="meta">chapter_1\exercise_1_10</p>
+      <h3>copy_io_esc_replace.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main(void)
+{
+  char c;
+  while ((c = getchar()) != EOF)
+  {
+    if (c == &#x27;\t&#x27;)
+    {
+      putchar(&#x27;\\&#x27;);
+      putchar(&#x27;t&#x27;);
+    }
+    else if (c == &#x27;\b&#x27;)
+    {
+      putchar(&#x27;\\&#x27;);
+      putchar(&#x27;b&#x27;);
+    }
+    else if (c == &#x27;\\&#x27;)
+    {
+      putchar(&#x27;\\&#x27;);
+      putchar(&#x27;\\&#x27;);
+    }
+    else
+    {
+      putchar(c);
+    }
+  }
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.11</h2>
+      <p class="meta">chapter_1\exercise_1_11</p>
+      <h3>word_count_test.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define IN 1
+#define OUT 0
+
+int main(void)
+{
+  char nl;
+  char nw;
+  char nc;
+
+  int state;
+
+  nl = nw = nc = 0;
+  state = OUT;
+
+  char c;
+  while ((c = getchar()) != EOF)
+  {
+    ++nc;
+
+    if (c == &#x27;\n&#x27;)
+    {
+      ++nl;
+    }
+
+    if (c == &#x27; &#x27; || c == &#x27;\n&#x27; || c == &#x27;\t&#x27;)
+    {
+      state = OUT;
+    }
+    else if (state == OUT)
+    {
+      state = IN;
+      ++nw;
+    }
+  }
+
+  printf(&quot;lines: %d\nwords: %d\ncharacters: %d\n&quot;, nl, nw, nc);
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.12</h2>
+      <p class="meta">chapter_1\exercise_1_12</p>
+      <h3>copy_io_nl.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+int main()
+{
+  int character;
+  int previous_character = EOF;
+
+  while ((character = getchar()) != EOF) {
+    if (character == &#x27; &#x27; || character == &#x27;\t&#x27; || character == &#x27;\n&#x27;) {
+      if (previous_character != &#x27; &#x27; &amp;&amp; previous_character != &#x27;\t&#x27; &amp;&amp; previous_character != &#x27;\n&#x27;) {
+        putchar(&#x27;\n&#x27;);
+      }
+    }
+    else {
+      putchar(character);
+    }
+
+    previous_character = character;
+  }
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.13</h2>
+      <p class="meta">chapter_1\exercise_1_13</p>
+      <h3>histogram.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define TRUE 1
+#define FALSE 0
+
+#define BUFFER 100
+
+int main(void)
+{
+  int histogram[BUFFER];
+  int histogram_length = 0;
+
+  int max_word_count = 0;
+
+  // Initialize the histogram array with 0
+  int i;
+  for (i = 0; i &lt; BUFFER; ++i)
+  {
+    histogram[i] = 0;
+  }
+
+  // Count the words length and store in histogram array at the
+  // specific index
+  char c;
+  int word_count_index = 0;
+  while ((c = getchar()))
+  {
+    if (c == &#x27; &#x27; || c == &#x27;\t&#x27; || c == &#x27;\n&#x27; || c == EOF)
+    {
+      if (word_count_index &gt; 0)
+      {
+        ++histogram[word_count_index - 1];
+
+        if (histogram[word_count_index - 1] &gt; max_word_count)
+        {
+          max_word_count = histogram[word_count_index - 1];
+        }
+
+        if (histogram_length &lt; word_count_index - 1)
+        {
+          histogram_length = word_count_index - 1;
+        }
+
+        word_count_index = 0;
+      }
+      if (c == EOF)
+      {
+        break;
+      }
+    }
+    else
+    {
+      ++word_count_index;
+    }
+  }
+
+  // Add in the histogram array a end of useful data char
+  histogram[histogram_length + 1] = &#x27;$&#x27;;
+
+  putchar(&#x27;\n&#x27;);
+
+  int column_index = 0;
+  int line_index = 0;
+
+  // Print horizontal histogram
+  printf(&quot;Horizontal Histogram\n--------------------\n&quot;);
+
+  while (histogram[column_index] != &#x27;$&#x27;)
+  {
+    printf(&quot;%3d: \t&quot;, column_index + 1);
+
+    for (line_index = 0; line_index &lt; histogram[column_index]; ++line_index)
+    {
+      putchar(&#x27;#&#x27;);
+    }
+
+    putchar(&#x27;\n&#x27;);
+
+    ++column_index;
+  }
+
+  putchar(&#x27;\n&#x27;);
+
+  // Print a vertical histogram
+  printf(&quot;Vertical Histogram\n------------------\n&quot;);
+
+  for (line_index = max_word_count; line_index &gt;= 0; --line_index)
+  {
+    column_index = 0;
+    while (histogram[column_index] != &#x27;$&#x27;)
+    {
+      if (line_index == 0)
+      {
+        printf(&quot;%2d &quot;, column_index + 1);
+      }
+      else if (histogram[column_index] &gt;= line_index)
+      {
+        printf(&quot;## &quot;);
+      }
+      else
+      {
+        printf(&quot;   &quot;);
+      }
+
+      ++column_index;
+    }
+
+    putchar(&#x27;\n&#x27;);
+  }
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.14</h2>
+      <p class="meta">chapter_1\exercise_1_14</p>
+      <h3>frequency_histogram.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define ALPHA_NR 26
+#define NUM_NR 10
+
+int main(void)
+{
+  int i;
+  char chars_freq[ALPHA_NR + NUM_NR];
+
+  // Initialize the chars_freq array with 0
+  for (i = 0; i &lt; (ALPHA_NR + NUM_NR); ++i)
+  {
+    chars_freq[i] = 0;
+  }
+
+  // Count characters from the standard input
+  char c;
+  while ((c = getchar()) != EOF)
+  {
+    if (c &gt;= &#x27;a&#x27; &amp;&amp; c &lt;= &#x27;z&#x27;)
+    {
+      ++chars_freq[c - &#x27;a&#x27;];
+    }
+    else if (c &gt;= &#x27;0&#x27; &amp;&amp; c &lt;= &#x27;9&#x27;)
+    {
+      ++chars_freq[c - &#x27;0&#x27; + ALPHA_NR];
+    }
+  }
+
+  // Print horizontal histogram
+  for (i = 0; i &lt; (ALPHA_NR + NUM_NR); ++i)
+  {
+    if (i &lt; ALPHA_NR)
+    {
+      printf(&quot;%c: &quot;, &#x27;a&#x27; + i);
+    }
+    else if (i &gt;= ALPHA_NR)
+    {
+      printf(&quot;%c: &quot;, &#x27;0&#x27; + i - ALPHA_NR);
+    }
+
+    int j;
+    for (j = 0; j &lt; chars_freq[i]; ++j)
+    {
+      printf(&quot;#&quot;);
+    }
+
+    putchar(&#x27;\n&#x27;);
+  }
+
+  return 0;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.15</h2>
+      <p class="meta">chapter_1\exercise_1_15</p>
+      <h3>temperature_conversion.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+float celsius_to_fahrenheit(int celsius);
+
+int main(void)
+{
+  float celsius, fahr;
+  int lower, upper, step;
+
+  lower = 0;
+  upper = 300;
+  step = 30;
+
+  // Printing a heading abouve the table
+  printf(&quot;Celsius\t\tFahr.\n&quot;);
+  printf(&quot;----------------------\n&quot;);
+
+  celsius = lower;
+  while (celsius &lt;= upper)
+  {
+    fahr = celsius_to_fahrenheit(celsius);
+    printf(&quot;%3.0f\t\t%6.1f\n&quot;, celsius, fahr);
+    celsius += step;
+  }
+
+  return 0;
+}
+
+float celsius_to_fahrenheit(int celsius)
+{
+  return (9.0 / 5.0) * celsius + 32.0f;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.16</h2>
+      <p class="meta">chapter_1\exercise_1_16</p>
+      <h3>longest_line.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLINE 1000
+
+int get_line(char line[], int maxline);
+void copy(char from[], char to[]);
+
+int main(void)
+{
+  int len;
+  char line[MAXLINE];
+
+  int maxlen;
+  char maxline[MAXLINE];
+
+  maxlen = 0;
+  while ((len = get_line(line, MAXLINE)) &gt; 0)
+  {
+    if (maxlen &lt; len)
+    {
+      maxlen = len;
+      copy(line, maxline);
+    }
+
+    printf(&quot;line_length: %d\n&quot;, len);
+  }
+
+  if (maxlen &gt; 0)
+  {
+    printf(&quot;%s&quot;, maxline);
+  }
+
+  return 0;
+}
+
+int get_line(char line[], int maxline)
+{
+  int c, i;
+
+  for (i = 0; i &lt; maxline - 1 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+  
+  line[i] = &#x27;\0&#x27;;
+  
+  while(c != EOF &amp;&amp; c != &#x27;\n&#x27;)
+  {
+    ++i;
+    c = getchar();
+  }
+  
+  if (c == &#x27;\n&#x27;)
+    ++i;
+
+  return i;
+}
+
+void copy(char from[], char to[])
+{
+  int i = 0;
+
+  while ((to[i] = from[i]) != &#x27;\0&#x27;)
+  {
+    ++i;
+  }
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.17</h2>
+      <p class="meta">chapter_1\exercise_1_17</p>
+      <h3>line_80.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLINE 1000
+#define LIMIT 80
+
+int get_line(char line[], int max_line_len);
+
+int main(void)
+{
+  int len;
+  char line[MAXLINE];
+
+  while ((len = get_line(line, MAXLINE)) &gt; 0)
+  {
+    if (len &gt; LIMIT)
+    {
+      printf(&quot;%s&quot;, line);
+    }
+  }
+
+  return 0;
+}
+
+int get_line(char line[], int max_line_len)
+{
+  int c, i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.18</h2>
+      <p class="meta">chapter_1\exercise_1_18</p>
+      <h3>trailing_blanks.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLINE 1000
+
+int get_line(char line[], int max_line_len);
+void remove_trailing_blanks(char line[], int length);
+
+int main(void)
+{
+  int len;
+  char line[MAXLINE];
+
+  while ((len = get_line(line, MAXLINE)) &gt; 0)
+  {
+    remove_trailing_blanks(line, len);
+    printf(&quot;%s&quot;, line);
+  }
+
+  return 0;
+}
+
+int get_line(char line[], int max_line_len)
+{
+  int c, i;
+
+  for (i = 0; i &lt; max_line_len - 1 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;; ++i)
+  {
+    line[i] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+void remove_trailing_blanks(char line[], int length)
+{
+  int i;
+
+  for (i = length - 2; line[i] == &#x27; &#x27; || line[i] == &#x27;\t&#x27;; --i)
+    ;
+
+  line[i + 1] = &#x27;\n&#x27;;
+  line[i + 2] = &#x27;\0&#x27;;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.19</h2>
+      <p class="meta">chapter_1\exercise_1_19</p>
+      <h3>reverse.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLINE 1000
+
+int get_line(char line[], int max_line_len);
+int length(char line[]);
+void reverse(char line[]);
+
+int main(void)
+{
+  int len;
+  char line[MAXLINE];
+
+  while ((len = get_line(line, MAXLINE)) &gt; 0)
+  {
+    reverse(line);
+    printf(&quot;%s&quot;, line);
+  }
+
+  return 0;
+}
+
+int get_line(char line[], int max_line_len)
+{
+  int c, i;
+
+  i = 0;
+  while (i &lt; max_line_len - 1 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;)
+  {
+    line[i] = c;
+    ++i;
+  }
+
+  // flush out input stream if exceeding max_line_len limit
+  while (i &gt;= max_line_len - 1 &amp;&amp; (c = getchar()) != &#x27;\n&#x27;)
+    ;
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i] = &#x27;\n&#x27;;
+    ++i;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+int length(char line[])
+{
+  int i;
+
+  for (i = 0; line[i] != &#x27;\0&#x27;; ++i)
+    ;
+
+  return i;
+}
+
+void reverse(char line[])
+{
+  int i_front = 0;
+  int i_back = length(line);
+  char temp;
+
+  if(line[i_back - 1] == &#x27;\n&#x27;)
+  {
+    i_back -= 2;
+  }
+  else
+  {
+    i_back -= 1;
+  }
+  
+  while (i_back &gt; i_front)
+  {
+    temp = line[i_front];
+    line[i_front] = line[i_back];
+    line[i_back] = temp;
+
+    ++i_front;
+    --i_back;
+  }
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.20</h2>
+      <p class="meta">chapter_1\exercise_1_20</p>
+      <h3>detab.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define TAB_LENGTH 8
+
+int main(void)
+{
+  int c;
+  unsigned int nr_of_spaces;
+
+  while ((c = getchar()) != EOF)
+  {
+    if (c == &#x27;\t&#x27;)
+    {
+      nr_of_spaces = TAB_LENGTH;
+
+      while (nr_of_spaces)
+      {
+        putchar(&#x27; &#x27;);
+        --nr_of_spaces;
+      }
+    }
+    else
+    {
+      putchar(c);
+    }
+  }
+
+  return 0;
+}
+
+// NOTE: In UNIX like systems you can execute commands like this:
+// ./detab &lt; file_in.txt &gt; file_out.txt that takes the input from a
+// file and after the program processed its content puts it to another file.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.21</h2>
+      <p class="meta">chapter_1\exercise_1_21</p>
+      <h3>entab.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define TAB_LENGTH 8
+
+int main(void)
+{
+  int c;
+  unsigned int line_pos = 0;
+  unsigned int nr_of_spaces = 0;
+
+  while ((c = getchar()) != EOF)
+  {
+    ++line_pos;
+
+    if (c == &#x27; &#x27;)
+    {
+      ++nr_of_spaces;
+
+      if (line_pos % TAB_LENGTH == 0 &amp;&amp; nr_of_spaces &gt; 1)
+      {
+        putchar(&#x27;\t&#x27;);
+        nr_of_spaces = 0;
+      }
+    }
+    else
+    {
+      while (nr_of_spaces)
+      {
+        putchar(&#x27; &#x27;);
+        --nr_of_spaces;
+      }
+
+      if (c == &#x27;\n&#x27;)
+      {
+        line_pos = 0;
+      }
+
+      putchar(c);
+    }
+  }
+
+  return 0;
+}
+
+// NOTE: run: ./entab &lt; file_in.txt &gt; file_out.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.22</h2>
+      <p class="meta">chapter_1\exercise_1_22</p>
+      <h3>fold_line.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLINE 10000
+
+#define TRUE (1 == 1)
+#define FALSE !TRUE
+
+#define BREAKING_POINT 40
+#define OFFSET 10
+
+int get_line(char line[], int max_line_len);
+void fold_line(char line[], char fold_str[], int n_break);
+
+int main(void)
+{
+  char line[MAXLINE];
+  char fold_str[MAXLINE];
+
+  while ((get_line(line, MAXLINE)) &gt; 0)
+  {
+    fold_line(line, fold_str, BREAKING_POINT);
+    printf(&quot;%s&quot;, fold_str);
+  }
+
+  return 0;
+}
+
+int get_line(char line[], int max_line_len)
+{
+  int c, i = 0;
+
+  while (i &lt; max_line_len - 1 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+  }
+
+  if (c == &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+void fold_line(char line[], char fold_str[], int n_break)
+{
+  int i, j;
+  int column = 0;
+  int split = FALSE;
+  int last_blank = 0;
+
+  for (i = 0, j = 0; line[i] != &#x27;\0&#x27;; ++i, ++j)
+  {
+    fold_str[j] = line[i];
+
+    if (fold_str[j] == &#x27;\n&#x27;)
+    {
+      column = 0;
+    }
+
+    column++;
+
+    if (column == n_break - OFFSET)
+    {
+      split = TRUE;
+    }
+
+    if (split &amp;&amp; (fold_str[j] == &#x27; &#x27; || fold_str[j] == &#x27;\t&#x27;))
+    {
+      last_blank = j;
+    }
+
+    if (column == n_break)
+    {
+      if (last_blank)
+      {
+        fold_str[last_blank] = &#x27;\n&#x27;;
+        column = j - last_blank;
+        last_blank = 0;
+      }
+      else
+      {
+        fold_str[j++] = &#x27;-&#x27;;
+        fold_str[j] = &#x27;\n&#x27;;
+
+        column = 0;
+      }
+
+      split = FALSE;
+    }
+  }
+
+  fold_str[j] = &#x27;\0&#x27;;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.23</h2>
+      <p class="meta">chapter_1\exercise_1_23</p>
+      <h3>c_remove_comments.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXSTR 10000
+
+#define TRUE (1 == 1)
+#define FALSE !TRUE
+
+// This is a test comment.
+
+int get_str(char str[], int limit); // This is another test comment.
+void remove_comments(char str[], char no_com_str[]);
+
+int main(void)
+{
+  /**
+   * This is multiline
+   * block
+   * comment.
+  */
+
+  char str[MAXSTR];
+  char no_com_str[MAXSTR];
+
+  get_str(str, MAXSTR);
+
+  remove_comments(str, no_com_str);
+
+  printf(&quot;%s&quot;, no_com_str);
+
+  return 0;
+}
+
+int get_str(char str[], int limit)
+{
+  int c, i = 0;
+
+  while (i &lt; limit - 1 &amp;&amp; (c = getchar()) != EOF)
+  {
+    str[i++] = c;
+  }
+  str[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+void remove_comments(char str[], char no_com_str[])
+{
+  int in_quote = FALSE;
+  int line_comment = FALSE;
+  int block_comment = FALSE;
+
+  int i = 0, j = 0;
+  while (str[i] != &#x27;\0&#x27;)
+  {
+    if (!block_comment)
+    {
+      if (!in_quote &amp;&amp; str[i] == &#x27;&quot;&#x27;)
+    {
+      in_quote = TRUE;
+    }
+    else if (in_quote &amp;&amp; str[i] == &#x27;&quot;&#x27;)
+    {
+      in_quote = FALSE;
+    }
+    }
+
+    if (!in_quote)
+    {
+      if (str[i] == &#x27;/&#x27; &amp;&amp; str[i + 1] == &#x27;*&#x27; &amp;&amp; !line_comment)
+      {
+        block_comment = TRUE;
+      }
+
+      if (str[i] == &#x27;*&#x27; &amp;&amp; str[i + 1] == &#x27;/&#x27;)
+      {
+        block_comment = FALSE;
+        i += 2;
+      }
+
+      if (str[i] == &#x27;/&#x27; &amp;&amp; str[i + 1] == &#x27;/&#x27;)
+      {
+        line_comment = TRUE;
+      }
+
+      if (str[i] == &#x27;\n&#x27;)
+      {
+        line_comment = FALSE;
+      }
+
+      if (line_comment || block_comment)
+      {
+        ++i;
+      }
+      else if (!line_comment || !block_comment)
+      {
+        no_com_str[j++] = str[i++];
+      }
+    }
+    else
+    {
+      no_com_str[j++] = str[i++];
+    }
+  }
+
+  no_com_str[j] = &#x27;\0&#x27;;
+}
+
+// NOTE: run: ./c_remove_comments &lt; c_remove_comments.c
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 1.24</h2>
+      <p class="meta">chapter_1\exercise_1_24</p>
+      <h3>check_syntax.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXSTR 10000
+
+#define TRUE (1 == 1)
+#define FALSE !TRUE
+
+int get_str(char str[], int limit);
+void check_syntax(char str[]);
+
+int main(void)
+{
+  char str[MAXSTR];
+
+  get_str(str, MAXSTR);
+  check_syntax(str);
+
+  return 0;
+}
+
+int get_str(char str[], int limit)
+{
+  int c, i = 0;
+
+  while (i &lt; limit - 1 &amp;&amp; (c = getchar()) != EOF)
+  {
+    str[i++] = c;
+  }
+  str[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+void check_syntax(char str[])
+{
+  int parentheses = 0;
+  int brackets = 0;
+  int braces = 0;
+
+  int single_quotes = FALSE;
+  int double_quotes = FALSE;
+
+  int block_comment = FALSE;
+  int line_comment = FALSE;
+
+  int i = 0;
+  while (str[i] != &#x27;\0&#x27; &amp;&amp; parentheses &gt;= 0 &amp;&amp; brackets &gt;= 0 &amp;&amp; braces &gt;= 0)
+  {
+    if (!line_comment &amp;&amp; !block_comment &amp;&amp; !single_quotes &amp;&amp; !double_quotes)
+    {
+      if (str[i] == &#x27;(&#x27;)
+      {
+        ++parentheses;
+      }
+      else if (str[i] == &#x27;)&#x27;)
+      {
+        --parentheses;
+      }
+
+      if (str[i] == &#x27;[&#x27;)
+      {
+        ++brackets;
+      }
+      else if (str[i] == &#x27;]&#x27;)
+      {
+        --brackets;
+      }
+
+      if (str[i] == &#x27;{&#x27;)
+      {
+        ++braces;
+      }
+      else if (str[i] == &#x27;}&#x27;)
+      {
+        --braces;
+      }
+    }
+
+    if (!line_comment &amp;&amp; !block_comment)
+    {
+      if (str[i] == &#x27;\&#x27;&#x27; &amp;&amp; !single_quotes &amp;&amp; !double_quotes)
+      {
+        single_quotes = TRUE;
+      }
+      else if (single_quotes &amp;&amp; str[i] == &#x27;\&#x27;&#x27; &amp;&amp; (str[i - 1] != &#x27;\\&#x27; || str[i - 2] == &#x27;\\&#x27;))
+      {
+        single_quotes = FALSE;
+      }
+
+      if (str[i] == &#x27;&quot;&#x27; &amp;&amp; !single_quotes &amp;&amp; !double_quotes)
+      {
+        double_quotes = TRUE;
+      }
+      else if (double_quotes &amp;&amp; str[i] == &#x27;&quot;&#x27; &amp;&amp; (str[i - 1] != &#x27;\\&#x27; || str[i - 2] == &#x27;\\&#x27;))
+      {
+        double_quotes = FALSE;
+      }
+    }
+
+    if (!single_quotes &amp;&amp; !double_quotes)
+    {
+      if (str[i] == &#x27;/&#x27; &amp;&amp; str[i + 1] == &#x27;*&#x27; &amp;&amp; !line_comment)
+      {
+        block_comment = TRUE;
+      }
+      else if (str[i] == &#x27;*&#x27; &amp;&amp; str[i + 1] == &#x27;/&#x27;)
+      {
+        block_comment = FALSE;
+      }
+
+      if (str[i] == &#x27;/&#x27; &amp;&amp; str[i + 1] == &#x27;/&#x27; &amp;&amp; !block_comment)
+      {
+        line_comment = TRUE;
+      }
+      else if (str[i] == &#x27;\n&#x27;)
+      {
+        line_comment = FALSE;
+      }
+    }
+
+    ++i;
+  }
+
+  if (parentheses)
+  {
+    printf(&quot;Error: unbalanced parentheses.\n&quot;);
+  }
+
+  if (brackets)
+  {
+    printf(&quot;Error: unbalanced brackets.\n&quot;);
+  }
+
+  if (braces)
+  {
+    printf(&quot;Error: unbalanced braces.\n&quot;);
+  }
+
+  if (single_quotes)
+  {
+    printf(&quot;Error: unbalanced single quotes.\n&quot;);
+  }
+
+  if (double_quotes)
+  {
+    printf(&quot;Error: unbalanced double quotes.\n&quot;);
+  }
+
+  if (block_comment)
+  {
+    printf(&quot;Error: block comment not closed.\n&quot;);
+  }
+}
+
+      </code></pre>
+    </div>
+    <footer>Generated from OutisNemosseus/the-c-programming-language-2nd-edition-solutions ? Chapter page</footer>
+  </main>
+</body>
+</html>

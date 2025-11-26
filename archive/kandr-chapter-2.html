@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>K&R 2e Solutions - Chapter 2</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f172a;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1020 40%, #0b1020 100%);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--accent); }
+    .card h3 { margin: 12px 0 6px; font-size: 16px; color: var(--accent2); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    pre {
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    a { color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <h1>Chapter 2 ? C solutions</h1>
+    <p class="subtitle">Each exercise folder from the repository, with its C source displayed inline.</p>
+    <div class="nav">
+      <a href="kandr-index.html">? Back to index</a>
+      <a href="kandr-chapter-1.html">Chapter 1</a>
+      <a href="kandr-chapter-3.html">Chapter 3</a>
+      <a href="kandr-chapter-4.html">Chapter 4</a>
+      <a href="kandr-chapter-5.html">Chapter 5</a>
+      <a href="kandr-chapter-6.html">Chapter 6</a>
+      <a href="kandr-chapter-7.html">Chapter 7</a>
+      <a href="kandr-chapter-8.html">Chapter 8</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Exercise 2.01</h2>
+      <p class="meta">chapter_2\exercise_2_01</p>
+      <h3>types_ranges.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;limits.h&gt;
+
+int main(void)
+{
+  printf(&quot;#################### CHAR #####################\n&quot;);
+  printf(&quot;bits: %d\n&quot;, CHAR_BIT);
+  printf(&quot;unsigned char max: %d\n&quot;, UCHAR_MAX);
+  printf(&quot;signed char min: %d\n&quot;, SCHAR_MIN);
+  printf(&quot;signed char max: %d\n&quot;, SCHAR_MAX);
+  printf(&quot;\n&quot;);
+
+  printf(&quot;##################### INT #####################\n&quot;);
+  printf(&quot;unsigned int max: %u\n&quot;, UINT_MAX);
+  printf(&quot;signed int min: %d\n&quot;, INT_MIN);
+  printf(&quot;signed int max: %d\n&quot;, INT_MAX);
+  printf(&quot;\n&quot;);
+
+  printf(&quot;################## SHORT INT ##################\n&quot;);
+  printf(&quot;unsigned short int max: %u\n&quot;, USHRT_MAX);
+  printf(&quot;signed short int min: %d\n&quot;, SHRT_MIN);
+  printf(&quot;signed short int max: %d\n&quot;, SHRT_MAX);
+  printf(&quot;\n&quot;);
+
+  printf(&quot;################## LONG INT ###################\n&quot;);
+  printf(&quot;unsigned long int max: %lu\n&quot;, ULONG_MAX);
+  printf(&quot;signed long int min: %ld\n&quot;, LONG_MIN);
+  printf(&quot;signed long int max: %ld\n&quot;, LONG_MAX);
+  printf(&quot;\n&quot;);
+
+  printf(&quot;################ LONG LONG INT #################\n&quot;);
+  printf(&quot;unsigned long long int max: %llu\n&quot;, ULLONG_MAX);
+  printf(&quot;signed long long int min: %lld\n&quot;, LLONG_MIN);
+  printf(&quot;signed long long int max: %lld\n&quot;, LLONG_MAX);
+  printf(&quot;\n&quot;);
+
+  return 0;
+}
+
+// NOTE: The limits.h header contains all the necessary constants machine
+// dependent for types sizes.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.02</h2>
+      <p class="meta">chapter_2\exercise_2_02</p>
+      <h3>loop.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXLINE 1000
+
+int main(void)
+{
+  char s[MAXLINE];
+
+  // int i;
+  // int c;
+  // for (i = 0; (i &lt; MAXLINE - 1) * ((c = getchar()) != &#x27;\n&#x27;) * (c != EOF); ++i)
+  // {
+  //   s[i] = c;
+  // }
+
+  int i = 0;
+  int loop = 1;
+  while (loop)
+  {
+    char c = getchar();
+
+    if (i &gt;= (MAXLINE - 1) || c == &#x27;\n&#x27; || c == EOF)
+    {
+      loop = 0;
+    }
+
+    s[i++] = c;
+  }
+
+  s[i] = &#x27;\0&#x27;;
+
+  printf(&quot;%s&quot;, s);
+
+  return 0;
+}
+
+// NOTE: The multiplication operation could work in this case because each
+// expression is evaluated as a 1 or 0 (true or false), and a multiplication
+// between expressions can have the value 1 only if all the expressions are true.
+// However, the order of multiplication is not guaranteed to be sequenced as with
+// logical operations. So, this is could cause serious problems depending on how
+// the compiler deals with multiplication.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.03</h2>
+      <p class="meta">chapter_2\exercise_2_03</p>
+      <h3>htoi.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;math.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAXLINE 100
+
+int get_line(char line[], int lim);
+int htoi(char hex[]);
+
+int main(void)
+{
+  char hex[MAXLINE];
+
+  get_line(hex, MAXLINE);
+
+  printf(&quot;%d&quot;, htoi(hex));
+
+  return 0;
+}
+
+int get_line(char line[], int lim)
+{
+  char c;
+  int i = 0;
+  while (i &lt; lim - 1 &amp;&amp; (c = getchar()) != EOF &amp;&amp; c != &#x27;\n&#x27;)
+  {
+    line[i++] = c;
+  }
+
+  line[i] = &#x27;\0&#x27;;
+
+  return i;
+}
+
+int htoi(char hex[])
+{
+  int result = 0;
+
+  int i = 0, len = strlen(hex);
+
+  while (i &lt; len)
+  {
+    if (hex[i] == &#x27;0&#x27; &amp;&amp; (hex[i + 1] == &#x27;x&#x27; || hex[i + 1] == &#x27;X&#x27;))
+    {
+      i += 2;
+    }
+
+    int temp = tolower(hex[i]);
+
+    if (isdigit(temp))
+    {
+      temp -= 48;
+    }
+
+    if (isalpha(temp) &amp;&amp; temp &lt;= &#x27;f&#x27;)
+    {
+      temp = temp - &#x27;a&#x27; + 10;
+    }
+
+    if ((hex[i] &gt;= &#x27;0&#x27; &amp;&amp; hex[i] &lt;= &#x27;9&#x27;) || (hex[i] &gt;= &#x27;a&#x27; &amp;&amp; hex[i] &lt;= &#x27;f&#x27;) || (hex[i] &gt;= &#x27;A&#x27; &amp;&amp; hex[i] &lt;= &#x27;F&#x27;))
+    {
+      result += temp * (int)pow(16, len - i - 1);
+    }
+    else
+    {
+      printf(&quot;Error: Not a valid hex value.\n Try this format: 0xHHHH, where H is a hex digit.\n&quot;);
+    }
+
+    ++i;
+  }
+
+  return result;
+}
+
+// NOTE: The conversion algorithm from hex to dec is very similar with the
+// conversion algorithm from bin to dec, but the base is not 2 but 16.
+// The general formula is: x1*B^N + x2*B^(N - 1) + ... + xn*B^(N - N), where B
+// is the base from we convert to dec, in this case B = 16.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.04</h2>
+      <p class="meta">chapter_2\exercise_2_04</p>
+      <h3>squeeze.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAXSTR 1000
+
+void squeeze(char str1[], char str2[]);
+
+int main(void)
+{
+  char str1[MAXSTR] = &quot;abcdefg&quot;;
+  char str2[MAXSTR] = &quot;abcd&quot;;
+
+  squeeze(str1, str2);
+
+  printf(&quot;%s&quot;, str1);
+
+  return 0;
+}
+
+void squeeze(char str1[], char str2[])
+{
+  int i, j, k;
+  for (k = 0; str2[k] != &#x27;\0&#x27;; ++k)
+  {
+    for (i = j = 0; str1[i] != &#x27;\0&#x27;; ++i)
+    {
+      if (str1[i] != str2[k])
+      {
+        str1[j++] = str1[i];
+      }
+    }
+
+    str1[j] = &#x27;\0&#x27;;
+  }
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.05</h2>
+      <p class="meta">chapter_2\exercise_2_05</p>
+      <h3>any.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#define MAXSTR 1000
+
+int any(char str1[], char str2[]);
+
+int main(void)
+{
+  char str1[MAXSTR] = &quot;xxxabcabc&quot;;
+  char str2[MAXSTR] = &quot;cbaa&quot;;
+
+  printf(&quot;%d&quot;, any(str1, str2));
+
+  return 0;
+}
+
+int any(char str1[], char str2[])
+{
+  int i, j;
+  for (i = 0; str1[i] != &#x27;\0&#x27;; ++i)
+  {
+    for (j = 0; str2[j] != &#x27;\0&#x27;; ++j)
+    {
+      if (str1[i] == str2[j])
+      {
+        return i;
+      }
+    }
+  }
+
+  return -1;
+}
+
+// NOTE: The standard library (string.h), cotains the function strpbrk which
+// returns a pointer to the location of the char from the first string.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.06</h2>
+      <p class="meta">chapter_2\exercise_2_06</p>
+      <h3>setbits.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define BYTE_TO_BINARY_PATTERN &quot;%c%c%c%c%c%c%c%c\n&quot;
+#define BYTE_TO_BINARY(byte)   \
+  (byte &amp; 128 ? &#x27;1&#x27; : &#x27;0&#x27;),    \
+      (byte &amp; 64 ? &#x27;1&#x27; : &#x27;0&#x27;), \
+      (byte &amp; 32 ? &#x27;1&#x27; : &#x27;0&#x27;), \
+      (byte &amp; 16 ? &#x27;1&#x27; : &#x27;0&#x27;), \
+      (byte &amp; 8 ? &#x27;1&#x27; : &#x27;0&#x27;),  \
+      (byte &amp; 4 ? &#x27;1&#x27; : &#x27;0&#x27;),  \
+      (byte &amp; 2 ? &#x27;1&#x27; : &#x27;0&#x27;),  \
+      (byte &amp; 1 ? &#x27;1&#x27; : &#x27;0&#x27;)
+
+unsigned int setbits(int x, int p, int n, int y);
+
+int main(void)
+{
+  unsigned int x = 0b11111111;
+  unsigned int y = 0b0110;
+
+  printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(x));
+  printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(setbits(x, 2, 4, y)));
+
+  return 0;
+}
+
+unsigned int setbits(int x, int p, int n, int y)
+{
+  ++p; // First position is 0
+
+  unsigned int mask1 = (~(~(~0 &lt;&lt; n) &lt;&lt; p) &amp; x);
+  unsigned int mask2 = (~(~0 &lt;&lt; n) &amp; y) &lt;&lt; p;
+
+  return mask1 | mask2;
+}
+
+// NOTE: Masking is a very good technique to work with bits. We can think about
+// logic AND as a multiply and for OR as an addition.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.07</h2>
+      <p class="meta">chapter_2\exercise_2_07</p>
+      <h3>invert.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+#define BYTE_TO_BINARY_PATTERN &quot;%c%c%c%c%c%c%c%c\n&quot;
+#define BYTE_TO_BINARY(byte)   \
+  (byte &amp; 128 ? &#x27;1&#x27; : &#x27;0&#x27;),    \
+      (byte &amp; 64 ? &#x27;1&#x27; : &#x27;0&#x27;), \
+      (byte &amp; 32 ? &#x27;1&#x27; : &#x27;0&#x27;), \
+      (byte &amp; 16 ? &#x27;1&#x27; : &#x27;0&#x27;), \
+      (byte &amp; 8 ? &#x27;1&#x27; : &#x27;0&#x27;),  \
+      (byte &amp; 4 ? &#x27;1&#x27; : &#x27;0&#x27;),  \
+      (byte &amp; 2 ? &#x27;1&#x27; : &#x27;0&#x27;),  \
+      (byte &amp; 1 ? &#x27;1&#x27; : &#x27;0&#x27;)
+
+unsigned int invert(int x, int p, int n);
+
+int main(void)
+{
+  unsigned int x = 0b11010111;
+
+  printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(x));
+  printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(invert(x, 1, 4)));
+
+  return 0;
+}
+
+unsigned int invert(int x, int p, int n)
+{
+  ++p; // First position is 0
+
+  unsigned int mask1 = ~(~0 &lt;&lt; n) &lt;&lt; p;
+  unsigned int mask2 = ~mask1 &amp; x;
+
+  return mask2 | ~x;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.08</h2>
+      <p class="meta">chapter_2\exercise_2_08</p>
+      <h3>rightrot.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;math.h&gt;
+
+void printbin(unsigned int x);
+unsigned int rightrot(unsigned int x, unsigned int n);
+
+int main(void)
+{
+  unsigned int x = 0b11110101;
+
+  printbin(x);
+  printbin(rightrot(x, 5));
+
+  return 0;
+}
+
+void printbin(unsigned int x)
+{
+  unsigned int n = sizeof(unsigned int);
+
+  printf(&quot;0b&quot;);
+
+  int i;
+  for (i = n * 8 - 1; i &gt;= 0; --i)
+  {
+    (x &amp; (unsigned int)pow(2, i)) ? putchar(&#x27;1&#x27;) : putchar(&#x27;0&#x27;);
+  }
+
+  putchar(&#x27;\n&#x27;);
+}
+
+unsigned int rightrot(unsigned int x, unsigned int n)
+{
+  unsigned int msb_1 = ~(~(unsigned)0 &gt;&gt; 1);
+
+  int i;
+  for (i = 0; i &lt; n; ++i)
+  {
+    if (x &amp; 1)
+    {
+      x = (x &gt;&gt; 1) | msb_1;
+    }
+    else
+    {
+      x = (x &gt;&gt; 1);
+    }
+  }
+
+  return x;
+}
+
+// NOTE: The rightrot function rotate the entire unsigned int var and if we print
+// just a byte we can&#x27;t see all bits. In order to print all the bits from an
+// unsigned int we need to determine the size of an unsigned int, wich is
+// machine dependent, and then print 0 or 1 to the output using powers of 2.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.09</h2>
+      <p class="meta">chapter_2\exercise_2_09</p>
+      <h3>bitcount.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;math.h&gt;
+
+void printbits(unsigned int x);
+int bitcount(unsigned int x);
+
+int main(void)
+{
+  unsigned int x = 0b011010;
+
+  printbits(x);
+  printf(&quot;x have %d bits of 1.\n&quot;, bitcount(x));
+
+  return 0;
+}
+
+void printbits(unsigned int x)
+{
+  unsigned int n = sizeof(unsigned int);
+
+  printf(&quot;0b&quot;);
+
+  int i;
+  for (i = n * 8 - 1; i &gt;= 0; --i)
+  {
+    (x &amp; (unsigned int)pow(2, i)) ? putchar(&#x27;1&#x27;) : putchar(&#x27;0&#x27;);
+  }
+
+  putchar(&#x27;\n&#x27;);
+}
+
+int bitcount(unsigned int x)
+{
+  int b = 0;
+
+  while (x)
+  {
+    x &amp;= (x - 1);
+    ++b;
+  }
+
+  return b;
+}
+
+// NOTE: The expression x &amp;= (x - 1) deletes the rightmost 1-bit of x because
+// x is decremented by 1 and masked with the initial x. If decremented x has
+// the rightmost bit 1, shifted to right by logic &amp; operation, it is deleted.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 2.10</h2>
+      <p class="meta">chapter_2\exercise_2_10</p>
+      <h3>lower.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+
+char lower(char c);
+
+int main(void)
+{
+  char a = &#x27;A&#x27;;
+
+  putchar(lower(a));
+
+  return 0;
+}
+
+char lower(char c)
+{
+  return (c &gt;= &#x27;A&#x27; &amp;&amp; c &lt;= &#x27;Z&#x27;) ? c += &#x27;a&#x27; - &#x27;A&#x27; : c;
+}
+
+// NOTE: The ternary operator ?: can be used direct in return.
+
+      </code></pre>
+    </div>
+    <footer>Generated from OutisNemosseus/the-c-programming-language-2nd-edition-solutions ? Chapter page</footer>
+  </main>
+</body>
+</html>

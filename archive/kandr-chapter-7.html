@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>K&R 2e Solutions - Chapter 7</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f172a;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1020 40%, #0b1020 100%);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--accent); }
+    .card h3 { margin: 12px 0 6px; font-size: 16px; color: var(--accent2); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    pre {
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    a { color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <h1>Chapter 7 ? C solutions</h1>
+    <p class="subtitle">Each exercise folder from the repository, with its C source displayed inline.</p>
+    <div class="nav">
+      <a href="kandr-index.html">? Back to index</a>
+      <a href="kandr-chapter-1.html">Chapter 1</a>
+      <a href="kandr-chapter-2.html">Chapter 2</a>
+      <a href="kandr-chapter-3.html">Chapter 3</a>
+      <a href="kandr-chapter-4.html">Chapter 4</a>
+      <a href="kandr-chapter-5.html">Chapter 5</a>
+      <a href="kandr-chapter-6.html">Chapter 6</a>
+      <a href="kandr-chapter-8.html">Chapter 8</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Exercise 7.01</h2>
+      <p class="meta">chapter_7\exercise_7_01</p>
+      <h3>case.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+typedef enum
+{
+  false,
+  true
+} boolean;
+
+typedef int (*convert_fn_t)(int);
+
+boolean parse_arg_list(int argc, char *argv[]);
+void consume_input(convert_fn_t convert);
+
+convert_fn_t convert;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  consume_input(convert);
+
+  return EXIT_SUCCESS;
+}
+
+boolean parse_arg_list(int argc, char *argv[])
+{
+  if (strcmp(argv[0], &quot;lower&quot;) == 0)
+  {
+    convert = tolower;
+    return true;
+  }
+  else if (strcmp(argv[0], &quot;upper&quot;) == 0)
+  {
+    convert = toupper;
+    return true;
+  }
+
+  return false;
+}
+
+void consume_input(convert_fn_t convert)
+{
+  int c;
+  while ((c = getc(stdin)) != EOF)
+  {
+    putc(convert(c), stdout);
+  }
+}
+
+// NOTE: run: ( exec -a upper ./case &lt; case.c )
+// It is possible to change argv[0] by using the exec command.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.02</h2>
+      <p class="meta">chapter_7\exercise_7_02</p>
+      <h3>print.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+#define MAX_LINE_LEN 80
+#define OFFSET 10
+
+typedef enum
+{
+  false,
+  true
+} boolean;
+
+boolean parse_arg_list(int argc, char *argv[]);
+int is_ascii(int c);
+
+boolean octal = true;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    puts(&quot;Error: invalid arguments.&quot;);
+    return EXIT_FAILURE;
+  }
+
+  int c;
+  size_t col_pos = 1;
+  while ((c = getc(stdin)) != EOF)
+  {
+    if (is_ascii(c))
+    {
+      if (c == &#x27;\n&#x27;)
+      {
+        c = &#x27; &#x27;;
+      }
+
+      putc(c, stdout);
+      ++col_pos;
+    }
+    else
+    {
+      if (octal)
+      {
+        col_pos += printf(&quot;\\%o&quot;, c) - 1;
+      }
+      else
+      {
+        col_pos += printf(&quot;\\%x&quot;, c) - 1;
+      }
+    }
+
+    if (col_pos &gt;= MAX_LINE_LEN - OFFSET)
+    {
+      if (isblank(c))
+      {
+        col_pos = 1;
+        putc(&#x27;\n&#x27;, stdout);
+      }
+    }
+  }
+  putc(&#x27;\n&#x27;, stdout);
+
+  return EXIT_SUCCESS;
+}
+
+boolean parse_arg_list(int argc, char *argv[])
+{
+  if (argc == 2)
+  {
+    if (strcmp(argv[1], &quot;-o&quot;) == 0)
+    {
+      octal = true;
+      return true;
+    }
+    else if (strcmp(argv[1], &quot;-x&quot;) == 0)
+    {
+      octal = false;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+int is_ascii(int c)
+{
+  if (c &gt; 127)
+  {
+    return 0;
+  }
+
+  return 1;
+}
+
+// NOTE: run: ./print -x &lt; test.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.03</h2>
+      <p class="meta">chapter_7\exercise_7_03</p>
+      <h3>minprintf.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdarg.h&gt;
+
+void minprintf(const char *format, ...);
+
+int main(int argc, char *argv[])
+{
+  int a;
+  minprintf(&quot;Let&#x27;s print %d, %i, %o, %x, %X, %u, %c, %e, %E, %g, %G, %f, %p, and %s.\n&quot;,
+            2, 3, 8, 16, 16, -1, 97, 0.0025f, 0.0023f, 0.0025f, 0.0023f, 3.14159f, &amp;a, &quot;hello, world&quot;);
+  return EXIT_SUCCESS;
+}
+
+void minprintf(const char *format, ...)
+{
+  va_list arg_p;
+
+  va_start(arg_p, format);
+  for (; *format != &#x27;\0&#x27;; ++format)
+  {
+    if (*format != &#x27;%&#x27;)
+    {
+      putc(*format, stdout);
+      continue;
+    }
+
+    switch (*++format)
+    {
+    case &#x27;d&#x27;:
+    case &#x27;i&#x27;:
+      printf(&quot;%d&quot;, va_arg(arg_p, int));
+      break;
+
+    case &#x27;o&#x27;:
+      printf(&quot;%o&quot;, va_arg(arg_p, int));
+      break;
+
+    case &#x27;x&#x27;:
+    case &#x27;X&#x27;:
+      printf(&quot;%x&quot;, va_arg(arg_p, int));
+      break;
+
+    case &#x27;u&#x27;:
+      printf(&quot;%u&quot;, va_arg(arg_p, int));
+      break;
+
+    case &#x27;c&#x27;:
+      printf(&quot;%c&quot;, va_arg(arg_p, int));
+      break;
+
+    case &#x27;s&#x27;:
+      printf(&quot;%s&quot;, va_arg(arg_p, char *));
+      break;
+
+    case &#x27;f&#x27;:
+      printf(&quot;%f&quot;, va_arg(arg_p, double));
+      break;
+
+    case &#x27;e&#x27;:
+    case &#x27;E&#x27;:
+      printf(&quot;%e&quot;, va_arg(arg_p, double));
+      break;
+
+    case &#x27;g&#x27;:
+    case &#x27;G&#x27;:
+      printf(&quot;%g&quot;, va_arg(arg_p, double));
+      break;
+
+    case &#x27;p&#x27;:
+      printf(&quot;%p&quot;, va_arg(arg_p, void *));
+      break;
+
+    default:
+      putc(*format, stdout);
+      break;
+    }
+  }
+  va_end(arg_p);
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.04</h2>
+      <p class="meta">chapter_7\exercise_7_04</p>
+      <h3>minscanf.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdarg.h&gt;
+
+void minscanf(const char *format, ...);
+
+int main(int argc, char *argv[])
+{
+  int decimal;
+  int integer;
+  int octal;
+  int unsigned_decimal;
+  int hexadecimal_integer;
+  char character;
+  char str[100];
+  float float_point_number;
+
+  minscanf(&quot;%d&quot;, &amp;decimal);
+  minscanf(&quot;%i&quot;, &amp;integer);
+  minscanf(&quot;%o&quot;, &amp;octal);
+  minscanf(&quot;%u&quot;, &amp;unsigned_decimal);
+  minscanf(&quot;%x&quot;, &amp;hexadecimal_integer);
+  minscanf(&quot;%c&quot;, &amp;character);
+  minscanf(&quot;%s&quot;, str);
+  minscanf(&quot;%f&quot;, &amp;float_point_number);
+
+  printf(&quot;decimal: %d\n&quot;, decimal);
+  printf(&quot;integer: %i\n&quot;, integer);
+  printf(&quot;octal: %o\n&quot;, octal);
+  printf(&quot;unsigned_decimal: %u\n&quot;, unsigned_decimal);
+  printf(&quot;hexadecimal_integer: %x\n&quot;, hexadecimal_integer);
+  printf(&quot;character: %c\n&quot;, character);
+  printf(&quot;str: %s\n&quot;, str);
+  printf(&quot;float_point_number: %f\n&quot;, float_point_number);
+
+  return EXIT_SUCCESS;
+}
+
+void minscanf(const char *format, ...)
+{
+  va_list arg_p;
+
+  va_start(arg_p, format);
+  for (; *format != &#x27;\0&#x27;; ++format)
+  {
+    if (*format != &#x27;%&#x27;)
+    {
+      continue;
+    }
+
+    switch (*++format)
+    {
+    case &#x27;d&#x27;:
+      scanf(&quot;%d&quot;, va_arg(arg_p, int *));
+      break;
+
+    case &#x27;i&#x27;:
+      scanf(&quot;%i&quot;, va_arg(arg_p, int *));
+      break;
+
+    case &#x27;o&#x27;:
+      scanf(&quot;%o&quot;, va_arg(arg_p, int *));
+      break;
+
+    case &#x27;u&#x27;:
+      scanf(&quot;%u&quot;, va_arg(arg_p, unsigned int *));
+      break;
+
+    case &#x27;x&#x27;:
+      scanf(&quot;%x&quot;, va_arg(arg_p, int *));
+      break;
+
+    case &#x27;c&#x27;:
+      scanf(&quot;%c&quot;, va_arg(arg_p, char *));
+      break;
+
+    case &#x27;s&#x27;:
+      scanf(&quot;%s&quot;, va_arg(arg_p, char *));
+      break;
+
+    case &#x27;e&#x27;:
+    case &#x27;f&#x27;:
+    case &#x27;g&#x27;:
+      scanf(&quot;%f&quot;, va_arg(arg_p, float *));
+      break;
+
+    default:
+      break;
+    }
+  }
+  va_end(arg_p);
+}
+
+// NOTE: run: ./minscanf &lt;&lt;&lt; &quot;1 2 3 4 5r hello 2.3&quot;
+// In Unix like systems:&lt; file or directory, &lt;&lt; here doc, &lt;&lt;&lt; here string
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.05</h2>
+      <p class="meta">chapter_7\exercise_7_05</p>
+      <h3>calculator.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+
+#define STACK_MAX_SIZE 100
+#define MAX_STR_LEN 1000
+
+void push(double);
+double pop(void);
+
+int sp = 0;
+double stack[STACK_MAX_SIZE];
+
+int main(int argc, char *argv[])
+{
+  char c;
+  double op2;
+  char str[MAX_STR_LEN];
+
+  while (scanf(&quot;%s&quot;, str) != EOF)
+  {
+    if (sscanf(str, &quot;%lf&quot;, &amp;op2) == 1)
+    {
+      push(op2);
+    }
+    else if (sscanf(str, &quot;%c&quot;, &amp;c) == 1)
+    {
+      switch (c)
+      {
+      case &#x27;+&#x27;:
+        push(pop() + pop());
+        break;
+
+      case &#x27;-&#x27;:
+        op2 = pop();
+        push(pop() - op2);
+        break;
+
+      case &#x27;*&#x27;:
+        push(pop() * pop());
+        break;
+
+      case &#x27;/&#x27;:
+        op2 = pop();
+
+        if (op2 != 0.0)
+        {
+          push(pop() / op2);
+        }
+        else
+        {
+          printf(&quot;Error: zero divisor.\n&quot;);
+        }
+        break;
+
+      case &#x27;%&#x27;:
+        op2 = pop();
+
+        if (op2 != 0.0)
+        {
+          push((int)pop() % (int)op2);
+        }
+        else
+        {
+          printf(&quot;Error: zero divisor.\n&quot;);
+        }
+        break;
+
+      default:
+        printf(&quot;Error: unknown command.\n&quot;);
+        break;
+      }
+    }
+  }
+
+  printf(&quot;result: %.8g\n&quot;, pop());
+
+  return EXIT_SUCCESS;
+}
+
+void push(double f)
+{
+  if (sp &lt; STACK_MAX_SIZE)
+  {
+    stack[sp++] = f;
+  }
+  else
+  {
+    printf(&quot;Error: stack full, can&#x27;t push %g.\n&quot;, f);
+  }
+}
+
+double pop(void)
+{
+  if (sp &gt; 0)
+  {
+    return stack[--sp];
+  }
+  else
+  {
+    printf(&quot;Error: stack empty.\n&quot;);
+    return 0.0;
+  }
+}
+
+// NOTE: run: ./calculator &lt;&lt;&lt; &quot;2 3 4 2 - + +&quot;
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.06</h2>
+      <p class="meta">chapter_7\exercise_7_06</p>
+      <h3>compare.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#define MAX_LINE_LEN 1000
+
+int parse_arg_list(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    fprintf(stderr, &quot;Error: invalid arguments.\n&quot;);
+    exit(EXIT_FAILURE);
+  }
+
+  char *program_name = argv[0];
+
+  FILE *file_1;
+  FILE *file_2;
+
+  if ((file_1 = fopen(argv[1], &quot;r&quot;)) == NULL)
+  {
+    fprintf(stderr, &quot;%s: can&#x27;t open %s.\n&quot;, program_name, argv[1]);
+    exit(EXIT_FAILURE);
+  }
+
+  if ((file_2 = fopen(argv[2], &quot;r&quot;)) == NULL)
+  {
+    fprintf(stderr, &quot;%s: can&#x27;t open %s.\n&quot;, program_name, argv[2]);
+    exit(EXIT_FAILURE);
+  }
+
+  char line_1[MAX_LINE_LEN];
+  char line_2[MAX_LINE_LEN];
+
+  size_t line_number = 1;
+  while (fgets(line_1, MAX_LINE_LEN, file_1) != NULL &amp;&amp; fgets(line_2, MAX_LINE_LEN, file_2) != NULL)
+  {
+    if (strcmp(line_1, line_2) != 0)
+    {
+      printf(&quot;%s [%zu]: %s&quot;, argv[1], line_number, line_1);
+      fclose(file_1);
+
+      printf(&quot;%s [%zu]: %s&quot;, argv[2], line_number, line_2);
+      fclose(file_2);
+      break;
+    }
+
+    ++line_number;
+  }
+
+  exit(EXIT_SUCCESS);
+}
+
+int parse_arg_list(int argc, char *argv[])
+{
+  if (argc != 3)
+  {
+    return 0;
+  }
+
+  return 1;
+}
+
+// NOTE: run: ./compare file_1.txt file_2.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.07</h2>
+      <p class="meta">chapter_7\exercise_7_07</p>
+      <h3>find.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#define MAX_LINE_LEN 1000
+
+typedef enum
+{
+  false,
+  true
+} boolean;
+
+boolean parse_arg_list(int argc, char *argv[]);
+void find_pattern(char *pattern, FILE *file_p);
+
+char *program_name;
+
+boolean except = false;
+boolean number = false;
+
+int pattern_arg_pos = 1;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    exit(EXIT_FAILURE);
+  }
+
+  if (argc - pattern_arg_pos &gt; 1)
+  {
+    for (int file_arg_pos = pattern_arg_pos + 1; file_arg_pos &lt; argc; file_arg_pos++)
+    {
+      FILE *file_p;
+      if ((file_p = fopen(argv[file_arg_pos], &quot;r&quot;)) == NULL)
+      {
+        fprintf(stderr, &quot;%s: can&#x27;t open %s.\n&quot;, program_name, argv[file_arg_pos]);
+        exit(EXIT_FAILURE);
+      }
+      printf(&quot;%s\n&quot;, argv[file_arg_pos]);
+      find_pattern(argv[pattern_arg_pos], file_p);
+      fclose(file_p);
+
+      if (file_arg_pos &lt; argc - 1)
+      {
+        putc(&#x27;\n&#x27;, stdout);
+      }
+    }
+  }
+  else
+  {
+    find_pattern(argv[pattern_arg_pos], stdin);
+  }
+
+  exit(EXIT_SUCCESS);
+}
+
+boolean parse_arg_list(int argc, char *argv[])
+{
+  program_name = argv[0];
+
+  if (argc &lt; 3)
+  {
+    fprintf(stderr, &quot;Usage: %s [-xn]... PATTERN [FILE]...\n&quot;, program_name);
+    return false;
+  }
+
+  while (--argc &gt; 0 &amp;&amp; (*++argv)[0] == &#x27;-&#x27;)
+  {
+    int c;
+    while ((c = *++argv[0]))
+    {
+      switch (c)
+      {
+      case &#x27;x&#x27;:
+        except = true;
+        break;
+
+      case &#x27;n&#x27;:
+        number = true;
+        break;
+
+      default:
+        fprintf(stderr, &quot;%s: illegal option %c.\n&quot;, program_name, c);
+        return false;
+        break;
+      }
+    }
+
+    ++pattern_arg_pos;
+  }
+
+  return true;
+}
+
+void find_pattern(char *pattern, FILE *file_p)
+{
+  size_t line_number = 1;
+  char line[MAX_LINE_LEN];
+  while (fgets(line, MAX_LINE_LEN, file_p) != NULL)
+  {
+    if ((strstr(line, pattern) != NULL) != except)
+    {
+      if (number)
+      {
+        printf(&quot;%ld: &quot;, line_number);
+      }
+      printf(&quot;%s&quot;, line);
+    }
+    ++line_number;
+  }
+}
+
+// NOTE: run: ./find -n &quot;Some people&quot; file_1.txt file_2.txt
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.08</h2>
+      <p class="meta">chapter_7\exercise_7_08</p>
+      <h3>print.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#define MAX_LINE_LEN 1000
+#define LINES_PER_PAGE 10
+
+typedef enum
+{
+  false,
+  true
+} boolean;
+
+boolean parse_arg_list(int argc, char *argv[]);
+void print_file(char *file_name);
+
+char *program_name;
+
+int main(int argc, char *argv[])
+{
+  if (!parse_arg_list(argc, argv))
+  {
+    exit(EXIT_FAILURE);
+  }
+
+  while (--argc &gt; 0)
+  {
+    print_file(*++argv);
+
+    if (argc != 1)
+    {
+      putc(&#x27;\n&#x27;, stdout);
+    }
+  }
+
+  exit(EXIT_SUCCESS);
+}
+
+boolean parse_arg_list(int argc, char *argv[])
+{
+  const char *program_name = argv[0];
+
+  if (argc &lt; 2)
+  {
+    fprintf(stderr, &quot;Usage: %s [FILE]...\n&quot;, program_name);
+    return false;
+  }
+
+  return true;
+}
+
+void print_file(char *file_name)
+{
+  FILE *file_p;
+  if ((file_p = fopen(file_name, &quot;r&quot;)) == NULL)
+  {
+    fprintf(stderr, &quot;%s: can&#x27;t open %s.\n&quot;, program_name, file_name);
+    exit(EXIT_FAILURE);
+  }
+
+  size_t line_number = 1;
+  char line[MAX_LINE_LEN];
+  while (fgets(line, MAX_LINE_LEN, file_p) != NULL)
+  {
+    if ((line_number - 1) % LINES_PER_PAGE == 0)
+    {
+      printf(&quot;[%s]: page %zu\n&quot;, file_name, line_number / LINES_PER_PAGE + 1);
+    }
+
+    printf(&quot;%zu: %s&quot;, line_number, line);
+    ++line_number;
+  }
+}
+
+// NOTE: run: ./print ../exercise_7_7/file_1.txt ../exercise_7_7/file_2.txt ./print.c
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 7.09</h2>
+      <p class="meta">chapter_7\exercise_7_09</p>
+      <h3>isupper.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ctype.h&gt;
+
+int is_upper_v1(int c);
+int is_upper_v2(int c);
+
+int main(int argc, char *argv[])
+{
+  if (is_upper_v1(&#x27;c&#x27;))
+  {
+    puts(&quot;is_upper_v1: This letter is uppercase.&quot;);
+  }
+  else
+  {
+    puts(&quot;is_upper_v1: This letter is lowercase.&quot;);
+  }
+
+  if (is_upper_v2(&#x27;c&#x27;))
+  {
+    puts(&quot;is_upper_v2: This letter is uppercase.&quot;);
+  }
+  else
+  {
+    puts(&quot;is_upper_v2: This letter is lowercase.&quot;);
+  }
+
+  exit(EXIT_SUCCESS);
+}
+
+int is_upper_v1(int c)
+{
+  return (c &gt;= &#x27;A&#x27; &amp;&amp; c &lt;= &#x27;Z&#x27;);
+}
+
+int is_upper_v2(int c)
+{
+  return (strchr(&quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;, c) != NULL);
+}
+
+      </code></pre>
+    </div>
+    <footer>Generated from OutisNemosseus/the-c-programming-language-2nd-edition-solutions ? Chapter page</footer>
+  </main>
+</body>
+</html>

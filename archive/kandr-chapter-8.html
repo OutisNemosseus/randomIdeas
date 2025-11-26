@@ -1,0 +1,1540 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>K&R 2e Solutions - Chapter 8</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f172a;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1020 40%, #0b1020 100%);
+      color: var(--text);
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.2px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--accent); }
+    .card h3 { margin: 12px 0 6px; font-size: 16px; color: var(--accent2); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    pre {
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    code { color: var(--text); }
+    .chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    a { color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <h1>Chapter 8 ? C solutions</h1>
+    <p class="subtitle">Each exercise folder from the repository, with its C source displayed inline.</p>
+    <div class="nav">
+      <a href="kandr-index.html">? Back to index</a>
+      <a href="kandr-chapter-1.html">Chapter 1</a>
+      <a href="kandr-chapter-2.html">Chapter 2</a>
+      <a href="kandr-chapter-3.html">Chapter 3</a>
+      <a href="kandr-chapter-4.html">Chapter 4</a>
+      <a href="kandr-chapter-5.html">Chapter 5</a>
+      <a href="kandr-chapter-6.html">Chapter 6</a>
+      <a href="kandr-chapter-7.html">Chapter 7</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Exercise 8.01</h2>
+      <p class="meta">chapter_8\exercise_8_01</p>
+      <h3>cat.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdarg.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;fcntl.h&gt;
+
+#define BUFFER_SIZE 1024
+
+void error(char *format, ...);
+void copy_file(int from, int to);
+
+int main(int argc, char *argv[])
+{
+  if (argc == 1)
+  {
+    copy_file(0, 1);
+  }
+  else
+  {
+    for (int file_index = 1; file_index &lt; argc; ++file_index)
+    {
+      int file_descriptor;
+      if ((file_descriptor = open(argv[file_index], O_RDONLY, 0)) == -1)
+      {
+        error(&quot;Error: could not open the file %s.&quot;, argv[file_index]);
+        exit(EXIT_FAILURE);
+      }
+
+      copy_file(file_descriptor, 1);
+    }
+  }
+
+  exit(EXIT_SUCCESS);
+}
+
+void copy_file(int from, int to)
+{
+  char buffer[BUFFER_SIZE];
+
+  int n;
+  while ((n = read(from, buffer, BUFFER_SIZE)) &gt; 0)
+  {
+    write(to, buffer, n);
+  }
+}
+
+void error(char *format, ...)
+{
+  va_list arg_p;
+
+  va_start(arg_p, format);
+  fprintf(stderr, &quot;Error: &quot;);
+  vfprintf(stderr, format, arg_p);
+  fprintf(stderr, &quot;\n&quot;);
+  va_end(arg_p);
+
+  exit(EXIT_FAILURE);
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 8.02</h2>
+      <p class="meta">chapter_8\exercise_8_02</p>
+      <h3>syscalls.c</h3>
+      <pre><code>
+#include &lt;fcntl.h&gt;
+#include &quot;syscalls.h&quot;
+
+#define PERMISSIONS 0666 // RW for owners, group, others
+
+FILE _io_buffer[MAX_NR_OF_OPEN_FILES] = {
+    {0, (char *)0, (char *)0, {1, 0, 0, 0, 0}, 0}, // stdin
+    {0, (char *)0, (char *)0, {0, 1, 0, 0, 0}, 1}, // stdout
+    {0, (char *)0, (char *)0, {0, 1, 1, 0, 0}, 2}  // stderr
+};
+
+void *malloc(long unsigned int size);
+long int lseek(int file_descriptor, long int offset, int whence);
+long int read(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+long int write(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+
+int _fill_buffer(FILE *file_p)
+{
+  int buffer_size;
+
+  if (file_p-&gt;flag._READ == 0 || file_p-&gt;flag._EOF == 1 || file_p-&gt;flag._ERR == 1)
+  {
+    return EOF;
+  }
+
+  buffer_size = (file_p-&gt;flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  if (file_p-&gt;base == NULL)
+  {
+    if ((file_p-&gt;base = (char *)malloc(buffer_size)) == NULL)
+    {
+      return EOF;
+    }
+  }
+
+  file_p-&gt;next_char_pos_p = file_p-&gt;base;
+  file_p-&gt;counter = read(file_p-&gt;file_descriptor, file_p-&gt;next_char_pos_p, buffer_size);
+
+  if (--file_p-&gt;counter &lt; 0)
+  {
+    if (file_p-&gt;counter == -1)
+    {
+      file_p-&gt;flag._EOF = 1;
+    }
+    else
+    {
+      file_p-&gt;flag._ERR = 1;
+    }
+
+    file_p-&gt;counter = 0;
+    return EOF;
+  }
+
+  return (unsigned char)*file_p-&gt;next_char_pos_p++;
+}
+
+FILE *file_open(char *name, char *mode)
+{
+  int file_descriptor;
+  FILE *file_p;
+
+  if (*mode != &#x27;r&#x27; &amp;&amp; *mode != &#x27;w&#x27; &amp;&amp; *mode != &#x27;a&#x27;)
+  {
+    return NULL;
+  }
+
+  for (file_p = _io_buffer; file_p &lt; _io_buffer + MAX_NR_OF_OPEN_FILES; ++file_p)
+  {
+    if (file_p-&gt;flag._READ == 0 &amp;&amp; file_p-&gt;flag._WRITE == 0)
+    {
+      break; // found free slot
+    }
+  }
+
+  if (file_p &gt;= _io_buffer + MAX_NR_OF_OPEN_FILES)
+  {
+    return NULL; // no free slots
+  }
+
+  if (*mode == &#x27;w&#x27;)
+  {
+    file_descriptor = creat(name, PERMISSIONS);
+  }
+  else if (*mode == &#x27;a&#x27;)
+  {
+    if ((file_descriptor = open(name, O_WRONLY, 0)) == -1)
+    {
+      file_descriptor = creat(name, PERMISSIONS);
+    }
+    lseek(file_descriptor, 0L, 2);
+  }
+  else
+  {
+    file_descriptor = open(name, O_RDONLY, 0);
+  }
+
+  if (file_descriptor == -1)
+  {
+    return NULL; // couldn&#x27;t access name
+  }
+
+  file_p-&gt;file_descriptor = file_descriptor;
+  file_p-&gt;counter = 0;
+  file_p-&gt;base = NULL;
+  file_p-&gt;flag._EOF = 0;
+  file_p-&gt;flag._ERR = 0;
+  file_p-&gt;flag._READ = (*mode == &#x27;r&#x27;) ? 1 : 0;
+  file_p-&gt;flag._WRITE = (*mode == &#x27;r&#x27;) ? 0 : 1;
+
+  return file_p;
+}
+
+int main(void)
+{
+  FILE *file_p;
+
+  if ((file_p = file_open(&quot;syscalls.c&quot;, &quot;r&quot;)) == NULL)
+  {
+    write(1, &quot;Error: could not open the file.\n&quot;, 33);
+    return EXIT_FAILURE;
+  }
+  else
+  {
+    char c;
+    while ((c = getc(file_p)) != EOF)
+    {
+      write(1, &amp;c, 1);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+// NOTE: Using bit fields leads to more verbose syntax. However, it&#x27;s more readable.
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 8.03</h2>
+      <p class="meta">chapter_8\exercise_8_03</p>
+      <h3>syscalls.c</h3>
+      <pre><code>
+#include &lt;fcntl.h&gt;
+#include &quot;syscalls.h&quot;
+
+#define PERMISSIONS 0666 // RW for owners, group, others
+
+FILE _io_buffer[MAX_NR_OF_OPEN_FILES] = {
+    {0, (char *)0, (char *)0, {1, 0, 0, 0, 0}, 0}, // stdin
+    {0, (char *)0, (char *)0, {0, 1, 0, 0, 0}, 1}, // stdout
+    {0, (char *)0, (char *)0, {0, 1, 1, 0, 0}, 2}  // stderr
+};
+
+void free(void *ptr);
+void *malloc(long unsigned int size);
+long int lseek(int file_descriptor, long int offset, int whence);
+long int read(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+long int write(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+int close(int file_descriptor);
+
+int _fill_buffer(FILE *file_p)
+{
+  int buffer_size;
+
+  if (file_p-&gt;flag._READ == 0 || file_p-&gt;flag._EOF == 1 || file_p-&gt;flag._ERR == 1)
+  {
+    return EOF;
+  }
+
+  buffer_size = (file_p-&gt;flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  if (file_p-&gt;base == NULL)
+  {
+    if ((file_p-&gt;base = (char *)malloc(buffer_size)) == NULL)
+    {
+      return EOF;
+    }
+  }
+
+  file_p-&gt;next_char_pos_p = file_p-&gt;base;
+  file_p-&gt;counter = read(file_p-&gt;file_descriptor, file_p-&gt;next_char_pos_p, buffer_size);
+
+  if (--file_p-&gt;counter &lt; 0)
+  {
+    if (file_p-&gt;counter == -1)
+    {
+      file_p-&gt;flag._EOF = 1;
+    }
+    else
+    {
+      file_p-&gt;flag._ERR = 1;
+    }
+
+    file_p-&gt;counter = 0;
+    return EOF;
+  }
+
+  return (unsigned char)*file_p-&gt;next_char_pos_p++;
+}
+
+int _flush_buffer(int c, FILE *file_p)
+{
+  int buffer_size;
+
+  if (file_p-&gt;flag._WRITE == 0 || file_p-&gt;flag._ERR == 1)
+  {
+    return EOF;
+  }
+
+  buffer_size = (file_p-&gt;flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  if (file_p-&gt;base == NULL)
+  {
+    if ((file_p-&gt;base = (char *)malloc(buffer_size)) == NULL)
+    {
+      return EOF;
+    }
+  }
+  else
+  {
+    unsigned long nr_of_bytes = file_p-&gt;next_char_pos_p - file_p-&gt;base;
+    if ((write(file_p-&gt;file_descriptor, file_p-&gt;base, nr_of_bytes)) != nr_of_bytes)
+    {
+      file_p-&gt;flag._ERR = 1;
+      return EOF;
+    }
+  }
+
+  file_p-&gt;next_char_pos_p = file_p-&gt;base;
+  *file_p-&gt;next_char_pos_p++ = c;
+  file_p-&gt;counter = buffer_size - 1;
+
+  return c;
+}
+
+int file_flush(FILE *file_p)
+{
+  if (file_p-&gt;flag._WRITE == 0)
+  {
+    file_p-&gt;flag._ERR = 1;
+    return EOF;
+  }
+
+  if (_flush_buffer(&#x27;0&#x27;, file_p) == EOF)
+  {
+    return EOF;
+  }
+
+  file_p-&gt;next_char_pos_p = file_p-&gt;base;
+  file_p-&gt;counter = (file_p-&gt;flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  return 0;
+}
+
+FILE *file_open(char *name, char *mode)
+{
+  int file_descriptor;
+  FILE *file_p;
+
+  if (*mode != &#x27;r&#x27; &amp;&amp; *mode != &#x27;w&#x27; &amp;&amp; *mode != &#x27;a&#x27;)
+  {
+    return NULL;
+  }
+
+  for (file_p = _io_buffer; file_p &lt; _io_buffer + MAX_NR_OF_OPEN_FILES; ++file_p)
+  {
+    if (file_p-&gt;flag._READ == 0 &amp;&amp; file_p-&gt;flag._WRITE == 0)
+    {
+      break; // found free slot
+    }
+  }
+
+  if (file_p &gt;= _io_buffer + MAX_NR_OF_OPEN_FILES)
+  {
+    return NULL; // no free slots
+  }
+
+  if (*mode == &#x27;w&#x27;)
+  {
+    file_descriptor = creat(name, PERMISSIONS);
+  }
+  else if (*mode == &#x27;a&#x27;)
+  {
+    if ((file_descriptor = open(name, O_WRONLY, 0)) == -1)
+    {
+      file_descriptor = creat(name, PERMISSIONS);
+    }
+    lseek(file_descriptor, 0L, 2);
+  }
+  else
+  {
+    file_descriptor = open(name, O_RDONLY, 0);
+  }
+
+  if (file_descriptor == -1)
+  {
+    return NULL; // couldn&#x27;t access name
+  }
+
+  file_p-&gt;file_descriptor = file_descriptor;
+  file_p-&gt;counter = 0;
+  file_p-&gt;base = NULL;
+  file_p-&gt;flag._EOF = 0;
+  file_p-&gt;flag._ERR = 0;
+  file_p-&gt;flag._READ = (*mode == &#x27;r&#x27;) ? 1 : 0;
+  file_p-&gt;flag._WRITE = (*mode == &#x27;r&#x27;) ? 0 : 1;
+
+  return file_p;
+}
+
+int file_close(FILE *file_p)
+{
+  if (file_p-&gt;flag._WRITE == 1 &amp;&amp; file_flush(file_p) == EOF)
+  {
+    return EOF;
+  }
+
+  free(file_p-&gt;base);
+  file_p-&gt;next_char_pos_p = NULL;
+  file_p-&gt;base = NULL;
+  file_p-&gt;counter = 0;
+  close(file_p-&gt;file_descriptor);
+
+  return 0;
+}
+
+int main(void)
+{
+  FILE *file_in_p;
+  FILE *file_out_p;
+
+  if ((file_in_p = file_open(&quot;syscalls.c&quot;, &quot;r&quot;)) == NULL)
+  {
+    write(1, &quot;Error: could not open the file.\n&quot;, 33);
+    return EXIT_FAILURE;
+  }
+
+  if ((file_out_p = file_open(&quot;out.txt&quot;, &quot;w&quot;)) == NULL)
+  {
+    write(1, &quot;Error: could not open the file.\n&quot;, 33);
+    return EXIT_FAILURE;
+  }
+
+  char c;
+  while ((c = getc(file_in_p)) != EOF)
+  {
+    putc(c, file_out_p);
+  }
+  file_close(file_in_p);
+  file_close(file_out_p);
+
+  return EXIT_SUCCESS;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 8.04</h2>
+      <p class="meta">chapter_8\exercise_8_04</p>
+      <h3>syscalls.c</h3>
+      <pre><code>
+#include &lt;fcntl.h&gt;
+#include &quot;syscalls.h&quot;
+
+#define PERMISSIONS 0666 // RW for owners, group, others
+
+FILE _io_buffer[MAX_NR_OF_OPEN_FILES] = {
+    {0, (char *)0, (char *)0, {1, 0, 0, 0, 0}, 0}, // stdin
+    {0, (char *)0, (char *)0, {0, 1, 0, 0, 0}, 1}, // stdout
+    {0, (char *)0, (char *)0, {0, 1, 1, 0, 0}, 2}  // stderr
+};
+
+void free(void *ptr);
+void *malloc(long unsigned int size);
+long int lseek(int file_descriptor, long int offset, int whence);
+long int read(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+long int write(int file_descriptor, void *buffer, long unsigned int nr_of_bytes);
+int close(int file_descriptor);
+
+int _fill_buffer(FILE *file_p)
+{
+  int buffer_size;
+
+  if (file_p-&gt;flag._READ == 0 || file_p-&gt;flag._EOF == 1 || file_p-&gt;flag._ERR == 1)
+  {
+    return EOF;
+  }
+
+  buffer_size = (file_p-&gt;flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  if (file_p-&gt;base == NULL)
+  {
+    if ((file_p-&gt;base = (char *)malloc(buffer_size)) == NULL)
+    {
+      return EOF;
+    }
+  }
+
+  file_p-&gt;next_char_pos_p = file_p-&gt;base;
+  file_p-&gt;counter = read(file_p-&gt;file_descriptor, file_p-&gt;next_char_pos_p, buffer_size);
+
+  if (--file_p-&gt;counter &lt; 0)
+  {
+    if (file_p-&gt;counter == -1)
+    {
+      file_p-&gt;flag._EOF = 1;
+    }
+    else
+    {
+      file_p-&gt;flag._ERR = 1;
+    }
+
+    file_p-&gt;counter = 0;
+    return EOF;
+  }
+
+  return (unsigned char)*file_p-&gt;next_char_pos_p++;
+}
+
+int _flush_buffer(int c, FILE *file_p)
+{
+  int buffer_size;
+
+  if (file_p-&gt;flag._WRITE == 0 || file_p-&gt;flag._ERR == 1)
+  {
+    return EOF;
+  }
+
+  buffer_size = (file_p-&gt;flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  if (file_p-&gt;base == NULL)
+  {
+    if ((file_p-&gt;base = (char *)malloc(buffer_size)) == NULL)
+    {
+      return EOF;
+    }
+  }
+  else
+  {
+    unsigned long nr_of_bytes = file_p-&gt;next_char_pos_p - file_p-&gt;base;
+    if ((write(file_p-&gt;file_descriptor, file_p-&gt;base, nr_of_bytes)) != nr_of_bytes)
+    {
+      file_p-&gt;flag._ERR = 1;
+      return EOF;
+    }
+  }
+
+  file_p-&gt;next_char_pos_p = file_p-&gt;base;
+  *file_p-&gt;next_char_pos_p++ = c;
+  file_p-&gt;counter = buffer_size - 1;
+
+  return c;
+}
+
+int file_flush(FILE *file_p)
+{
+  if (file_p-&gt;flag._WRITE == 0)
+  {
+    file_p-&gt;flag._ERR = 1;
+    return EOF;
+  }
+
+  if (_flush_buffer(&#x27;0&#x27;, file_p) == EOF)
+  {
+    return EOF;
+  }
+
+  file_p-&gt;next_char_pos_p = file_p-&gt;base;
+  file_p-&gt;counter = (file_p-&gt;flag._UNBUF == 1) ? 1 : BUFFER_SIZE;
+
+  return 0;
+}
+
+FILE *file_open(char *name, char *mode)
+{
+  int file_descriptor;
+  FILE *file_p;
+
+  if (*mode != &#x27;r&#x27; &amp;&amp; *mode != &#x27;w&#x27; &amp;&amp; *mode != &#x27;a&#x27;)
+  {
+    return NULL;
+  }
+
+  for (file_p = _io_buffer; file_p &lt; _io_buffer + MAX_NR_OF_OPEN_FILES; ++file_p)
+  {
+    if (file_p-&gt;flag._READ == 0 &amp;&amp; file_p-&gt;flag._WRITE == 0)
+    {
+      break; // found free slot
+    }
+  }
+
+  if (file_p &gt;= _io_buffer + MAX_NR_OF_OPEN_FILES)
+  {
+    return NULL; // no free slots
+  }
+
+  if (*mode == &#x27;w&#x27;)
+  {
+    file_descriptor = creat(name, PERMISSIONS);
+  }
+  else if (*mode == &#x27;a&#x27;)
+  {
+    if ((file_descriptor = open(name, O_WRONLY, 0)) == -1)
+    {
+      file_descriptor = creat(name, PERMISSIONS);
+    }
+    lseek(file_descriptor, 0L, 2);
+  }
+  else
+  {
+    file_descriptor = open(name, O_RDONLY, 0);
+  }
+
+  if (file_descriptor == -1)
+  {
+    return NULL; // couldn&#x27;t access name
+  }
+
+  file_p-&gt;file_descriptor = file_descriptor;
+  file_p-&gt;counter = 0;
+  file_p-&gt;base = NULL;
+  file_p-&gt;flag._EOF = 0;
+  file_p-&gt;flag._ERR = 0;
+  file_p-&gt;flag._READ = (*mode == &#x27;r&#x27;) ? 1 : 0;
+  file_p-&gt;flag._WRITE = (*mode == &#x27;r&#x27;) ? 0 : 1;
+
+  return file_p;
+}
+
+int file_close(FILE *file_p)
+{
+  if (file_p-&gt;flag._WRITE == 1 &amp;&amp; file_flush(file_p) == EOF)
+  {
+    return EOF;
+  }
+
+  free(file_p-&gt;base);
+  file_p-&gt;next_char_pos_p = NULL;
+  file_p-&gt;base = NULL;
+  file_p-&gt;counter = 0;
+  close(file_p-&gt;file_descriptor);
+
+  return 0;
+}
+
+int file_seek(FILE *file_p, long offset, int whence)
+{
+  if (file_p-&gt;flag._UNBUF == 0)
+  {
+    if (file_p-&gt;flag._READ == 1)
+    {
+      file_p-&gt;counter = 0;
+      file_p-&gt;next_char_pos_p = file_p-&gt;base;
+    }
+    else if (file_p-&gt;flag._WRITE == 1)
+    {
+      file_flush(file_p);
+    }
+  }
+
+  return (lseek(file_p-&gt;file_descriptor, offset, whence) &lt; 0);
+}
+
+int main(void)
+{
+  FILE *file_in_p;
+  FILE *file_out_p;
+
+  if ((file_in_p = file_open(&quot;syscalls.c&quot;, &quot;r&quot;)) == NULL)
+  {
+    write(1, &quot;Error: could not open the file.\n&quot;, 33);
+    return EXIT_FAILURE;
+  }
+
+  if ((file_out_p = file_open(&quot;out.txt&quot;, &quot;w&quot;)) == NULL)
+  {
+    write(1, &quot;Error: could not open the file.\n&quot;, 33);
+    return EXIT_FAILURE;
+  }
+
+  if (file_seek(file_in_p, 5, SEEK_SET) == -1)
+  {
+    return EXIT_FAILURE;
+  }
+
+  char c;
+  while ((c = getc(file_in_p)) != EOF)
+  {
+    putc(c, file_out_p);
+  }
+  file_close(file_in_p);
+  file_close(file_out_p);
+
+  return EXIT_SUCCESS;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 8.05</h2>
+      <p class="meta">chapter_8\exercise_8_05</p>
+      <h3>fsize.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;dirent.h&gt;
+#include &lt;time.h&gt;
+#include &lt;pwd.h&gt;
+#include &lt;grp.h&gt;
+
+#define MAX_PATH_LEN 1024
+
+void fsize(char *name);
+void dir_walk(char *dir_name, void (*func)(char *));
+
+void print_file_flags(mode_t st_mode);
+void print_file_user(uid_t st_uid);
+void print_file_group(gid_t st_gid);
+void print_file_size(size_t size);
+void print_file_time(time_t time);
+
+int main(int argc, char *argv[])
+{
+  if (argc == 1)
+  {
+    fsize(&quot;.&quot;);
+  }
+  else
+  {
+    while (--argc &gt; 0)
+    {
+      fsize(*++argv);
+    }
+  }
+
+  return 0;
+}
+
+void fsize(char *name)
+{
+  struct stat buffer;
+
+  if (stat(name, &amp;buffer) == -1)
+  {
+    fprintf(stderr, &quot;fsize: cannot access %s\n&quot;, name);
+    return;
+  }
+
+  if ((buffer.st_mode &amp; S_IFMT) == S_IFDIR)
+  {
+    dir_walk(name, fsize);
+  }
+
+  /**
+   * off_t st_size         File size, in bytes
+   * dev_t st_dev          ID of device containing file
+   * ino_t st_ino          File serial number
+   * mode_t st_mode        Mode of file (see below)
+   * nlink_t st_nlink      Number of hard links
+   * uid_t st_uid          User ID of the file
+   * gid_t st_gid          Group ID of the file
+   * dev_t st_rdev         Device ID
+   * time_t st_atime       Time of last access
+   * time_t st_mtime       Last data modification time
+   * time_t st_ctime       Time of last status change
+   * blkcnt_t st_blocks    Blocks allocated for file
+   * blksize_t st_blksize  Optimal blocksize for I/O
+   */
+
+  // Printed in a similary fashion to ls -l
+  print_file_flags(buffer.st_mode);
+  printf(&quot;%lu &quot;, buffer.st_nlink);
+  print_file_user(buffer.st_uid);
+  print_file_group(buffer.st_gid);
+  print_file_size(buffer.st_size);
+  print_file_time(buffer.st_atime);
+  printf(&quot;%s\n&quot;, name);
+}
+
+void dir_walk(char *dir_name, void (*func)(char *))
+{
+  char name[MAX_PATH_LEN];
+  struct dirent *dir_entry;
+  DIR *dir;
+
+  if ((dir = opendir(dir_name)) == NULL)
+  {
+    fprintf(stderr, &quot;dir_walk: cannot open %s\n&quot;, dir_name);
+    return;
+  }
+
+  while ((dir_entry = readdir(dir)) != NULL)
+  {
+    if (strcmp(dir_entry-&gt;d_name, &quot;.&quot;) == 0 || strcmp(dir_entry-&gt;d_name, &quot;..&quot;) == 0)
+    {
+      continue; // Skip self and parent.
+    }
+
+    if (strlen(dir_name) + strlen(dir_entry-&gt;d_name) + 2 &gt; MAX_PATH_LEN)
+    {
+      fprintf(stderr, &quot;dir_walk: path too long\n&quot;);
+    }
+    else
+    {
+      sprintf(name, &quot;%s/%s&quot;, dir_name, dir_entry-&gt;d_name);
+      (*func)(name);
+    }
+  }
+
+  closedir(dir);
+}
+
+void print_file_flags(mode_t st_mode)
+{
+  printf(&quot;%c&quot;, ((st_mode &amp; S_IFMT) == S_IFDIR) ? &#x27;d&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IRUSR) ? &#x27;r&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IWUSR) ? &#x27;w&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IXUSR) ? &#x27;x&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IRGRP) ? &#x27;r&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IWGRP) ? &#x27;w&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IXGRP) ? &#x27;x&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IROTH) ? &#x27;r&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c&quot;, (st_mode &amp; S_IWOTH) ? &#x27;w&#x27; : &#x27;-&#x27;);
+  printf(&quot;%c &quot;, (st_mode &amp; S_IXOTH) ? &#x27;x&#x27; : &#x27;-&#x27;);
+}
+
+void print_file_user(uid_t st_uid)
+{
+  struct passwd *password;
+  password = getpwuid(st_uid);
+
+  if (password == NULL)
+  {
+    fprintf(stderr, &quot;Error: cannot find user\n&quot;);
+    return;
+  }
+
+  printf(&quot;%s &quot;, password-&gt;pw_name);
+}
+
+void print_file_group(gid_t st_gid)
+{
+  struct group *group;
+  group = getgrgid(st_gid);
+
+  if (group == NULL)
+  {
+    fprintf(stderr, &quot;Error: cannot find group\n&quot;);
+    return;
+  }
+
+  printf(&quot;%s &quot;, group-&gt;gr_name);
+}
+
+void print_file_size(size_t size)
+{
+  static const char *SIZES[] = {&quot;B&quot;, &quot;K&quot;, &quot;M&quot;, &quot;G&quot;};
+  size_t div = 0;
+  size_t rem = 0;
+
+  while (size &gt;= 1024 &amp;&amp; div &lt; (sizeof SIZES / sizeof *SIZES))
+  {
+    rem = (size % 1024);
+    div++;
+    size /= 1024;
+  }
+
+  printf(&quot;%6.1f%s &quot;, (float)size + (float)rem / 1024.0, SIZES[div]);
+}
+
+void print_file_time(time_t time)
+{
+  char time_str[32];
+  strftime(time_str, sizeof(time_str), &quot;%d %b %H:%M&quot;, localtime(&amp;time));
+  printf(&quot;%s &quot;, time_str);
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 8.06</h2>
+      <p class="meta">chapter_8\exercise_8_06</p>
+      <h3>calloc.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;unistd.h&gt;
+
+#define MIN_NR_OF_UNITS 1024
+
+typedef long Aling;
+
+union header
+{
+  struct
+  {
+    union header *free_block_p;
+    size_t size;
+  } s;
+  Aling x; // Force alignment of blocks.
+};
+
+typedef union header Header;
+
+static Header base;
+static Header *free_p = NULL;
+
+void c_free(void *a_p);
+void *c_malloc(size_t nr_of_bytes);
+void *c_calloc(size_t nr_of_blocks, size_t block_size);
+Header *c_morecore(size_t nr_of_units);
+
+int main(int argc, char *argv[])
+{
+  char *test_malloc_str_p;
+  if ((test_malloc_str_p = c_malloc(27 * sizeof(char))) == NULL)
+  {
+    printf(&quot;Error: malloc faild to allocate the requrested memory.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  strcpy(test_malloc_str_p, &quot;Content from malloc here.&quot;);
+  printf(&quot;%s\n&quot;, test_malloc_str_p);
+  c_free(test_malloc_str_p);
+
+  char *test_calloc_str_p;
+  if ((test_calloc_str_p = c_calloc(27, sizeof(char))) == NULL)
+  {
+    printf(&quot;Error: calloc faild to allocate the requrested memory.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  strcpy(test_calloc_str_p, &quot;Content from calloc here.&quot;);
+  printf(&quot;%s\n&quot;, test_calloc_str_p);
+  c_free(test_calloc_str_p);
+
+  return EXIT_SUCCESS;
+}
+
+void c_free(void *a_p)
+{
+  Header *p;
+  Header *b_p = (Header *)a_p - 1;
+
+  for (p = free_p; !(b_p &gt; p &amp;&amp; b_p &lt; p-&gt;s.free_block_p); p = p-&gt;s.free_block_p)
+  {
+    if (p &gt;= p-&gt;s.free_block_p &amp;&amp; (b_p &gt; p || b_p &lt; p-&gt;s.free_block_p))
+    {
+      break;
+    }
+  }
+
+  if (b_p + b_p-&gt;s.size == p-&gt;s.free_block_p)
+  {
+    b_p-&gt;s.size += p-&gt;s.free_block_p-&gt;s.size;
+    b_p-&gt;s.free_block_p = p-&gt;s.free_block_p-&gt;s.free_block_p;
+  }
+  else
+  {
+    b_p-&gt;s.free_block_p = p-&gt;s.free_block_p;
+  }
+
+  if (p + p-&gt;s.size == b_p)
+  {
+    p-&gt;s.size += b_p-&gt;s.size;
+    p-&gt;s.free_block_p = b_p-&gt;s.free_block_p;
+  }
+  else
+  {
+    p-&gt;s.free_block_p = b_p;
+  }
+
+  free_p = p;
+}
+
+void *c_malloc(size_t nr_of_bytes)
+{
+  Header *p;
+  Header *prev_p;
+  size_t nr_of_units = (nr_of_bytes + sizeof(Header) - 1) / sizeof(Header);
+
+  if ((prev_p = free_p) == NULL)
+  {
+    base.s.free_block_p = free_p = prev_p = &amp;base;
+    base.s.size = 0;
+  }
+
+  for (p = prev_p-&gt;s.free_block_p;; prev_p = p, p = p-&gt;s.free_block_p)
+  {
+    if (p-&gt;s.size &gt;= nr_of_units)
+    {
+      if (p-&gt;s.size == nr_of_units)
+      {
+        prev_p-&gt;s.free_block_p = p-&gt;s.free_block_p;
+      }
+      else
+      {
+        p-&gt;s.size -= nr_of_units;
+        p += p-&gt;s.size;
+        p-&gt;s.size = nr_of_units;
+      }
+
+      free_p = prev_p;
+      return (void *)(p + 1);
+    }
+
+    if (p == free_p)
+    {
+      if ((p = c_morecore(nr_of_units)) == NULL)
+      {
+        return NULL;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+void *c_calloc(size_t nr_of_blocks, size_t block_size)
+{
+  void *p = NULL;
+  if ((p = c_malloc(nr_of_blocks * block_size)) == NULL)
+  {
+    return NULL;
+  }
+  memset(p, 0, nr_of_blocks * block_size);
+
+  return p;
+}
+
+Header *c_morecore(size_t nr_of_units)
+{
+  char *c_p;
+  Header *u_p;
+
+  if (nr_of_units &lt; MIN_NR_OF_UNITS)
+  {
+    nr_of_units = MIN_NR_OF_UNITS;
+  }
+
+  c_p = sbrk(nr_of_units * sizeof(Header));
+  if (c_p == (char *)-1)
+  {
+    return NULL;
+  }
+
+  u_p = (Header *)c_p;
+  u_p-&gt;s.size = nr_of_units;
+  c_free((void *)(u_p + 1));
+
+  return free_p;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 8.07</h2>
+      <p class="meta">chapter_8\exercise_8_07</p>
+      <h3>malloc_free.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;limits.h&gt;
+#include &lt;unistd.h&gt;
+
+#define MIN_NR_OF_UNITS 1024
+
+typedef long Aling;
+
+union header
+{
+  struct
+  {
+    union header *free_block_p;
+    size_t size;
+  } s;
+  Aling x; // Force alignment of blocks.
+};
+
+typedef union header Header;
+
+static Header base;
+static Header *free_p = NULL;
+
+void c_free(void *a_p);
+void *c_malloc(size_t nr_of_bytes);
+void *c_calloc(size_t nr_of_blocks, size_t block_size);
+Header *c_morecore(size_t nr_of_units);
+
+int main(int argc, char *argv[])
+{
+  char *test_malloc_str_p;
+  if ((test_malloc_str_p = c_malloc(27 * sizeof(char))) == NULL)
+  {
+    printf(&quot;Error: malloc faild to allocate the requrested memory.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  strcpy(test_malloc_str_p, &quot;Content from malloc here.&quot;);
+  printf(&quot;%s\n&quot;, test_malloc_str_p);
+  c_free(test_malloc_str_p);
+
+  char *test_calloc_str_p;
+  if ((test_calloc_str_p = c_calloc(27, sizeof(char))) == NULL)
+  {
+    printf(&quot;Error: calloc faild to allocate the requrested memory.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  strcpy(test_calloc_str_p, &quot;Content from calloc here.&quot;);
+  printf(&quot;%s\n&quot;, test_calloc_str_p);
+  c_free(test_calloc_str_p);
+
+  return EXIT_SUCCESS;
+}
+
+void c_free(void *a_p)
+{
+  Header *p;
+  Header *b_p = (Header *)a_p - 1;
+
+  if (b_p-&gt;s.size == 0 || b_p-&gt;s.size == UINT_MAX - MIN_NR_OF_UNITS)
+  {
+    fprintf(stderr, &quot;Error(free): invalid block size %zu\n&quot;, b_p-&gt;s.size);
+    return;
+  }
+
+  for (p = free_p; !(b_p &gt; p &amp;&amp; b_p &lt; p-&gt;s.free_block_p); p = p-&gt;s.free_block_p)
+  {
+    if (p &gt;= p-&gt;s.free_block_p &amp;&amp; (b_p &gt; p || b_p &lt; p-&gt;s.free_block_p))
+    {
+      break;
+    }
+  }
+
+  if (b_p + b_p-&gt;s.size == p-&gt;s.free_block_p)
+  {
+    b_p-&gt;s.size += p-&gt;s.free_block_p-&gt;s.size;
+    b_p-&gt;s.free_block_p = p-&gt;s.free_block_p-&gt;s.free_block_p;
+  }
+  else
+  {
+    b_p-&gt;s.free_block_p = p-&gt;s.free_block_p;
+  }
+
+  if (p + p-&gt;s.size == b_p)
+  {
+    p-&gt;s.size += b_p-&gt;s.size;
+    p-&gt;s.free_block_p = b_p-&gt;s.free_block_p;
+  }
+  else
+  {
+    p-&gt;s.free_block_p = b_p;
+  }
+
+  free_p = p;
+}
+
+void *c_malloc(size_t nr_of_bytes)
+{
+  Header *p;
+  Header *prev_p;
+
+  if (nr_of_bytes == 0 || nr_of_bytes &gt;= UINT_MAX - MIN_NR_OF_UNITS)
+  {
+    fprintf(stderr, &quot;Error(malloc): invalid size %zu\n&quot;, nr_of_bytes);
+    return NULL;
+  }
+
+  size_t nr_of_units = (nr_of_bytes + sizeof(Header) - 1) / sizeof(Header);
+
+  if ((prev_p = free_p) == NULL)
+  {
+    base.s.free_block_p = free_p = prev_p = &amp;base;
+    base.s.size = 0;
+  }
+
+  for (p = prev_p-&gt;s.free_block_p;; prev_p = p, p = p-&gt;s.free_block_p)
+  {
+    if (p-&gt;s.size &gt;= nr_of_units)
+    {
+      if (p-&gt;s.size == nr_of_units)
+      {
+        prev_p-&gt;s.free_block_p = p-&gt;s.free_block_p;
+      }
+      else
+      {
+        p-&gt;s.size -= nr_of_units;
+        p += p-&gt;s.size;
+        p-&gt;s.size = nr_of_units;
+      }
+
+      free_p = prev_p;
+      return (void *)(p + 1);
+    }
+
+    if (p == free_p)
+    {
+      if ((p = c_morecore(nr_of_units)) == NULL)
+      {
+        return NULL;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+void *c_calloc(size_t nr_of_blocks, size_t block_size)
+{
+  void *p = NULL;
+  if ((p = c_malloc(nr_of_blocks * block_size)) == NULL)
+  {
+    return NULL;
+  }
+  memset(p, 0, nr_of_blocks * block_size);
+
+  return p;
+}
+
+Header *c_morecore(size_t nr_of_units)
+{
+  char *c_p;
+  Header *u_p;
+
+  if (nr_of_units &lt; MIN_NR_OF_UNITS)
+  {
+    nr_of_units = MIN_NR_OF_UNITS;
+  }
+
+  c_p = sbrk(nr_of_units * sizeof(Header));
+  if (c_p == (char *)-1)
+  {
+    return NULL;
+  }
+
+  u_p = (Header *)c_p;
+  u_p-&gt;s.size = nr_of_units;
+  c_free((void *)(u_p + 1));
+
+  return free_p;
+}
+
+      </code></pre>
+    </div>
+    <div class="card">
+      <h2>Exercise 8.08</h2>
+      <p class="meta">chapter_8\exercise_8_08</p>
+      <h3>bfree.c</h3>
+      <pre><code>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;limits.h&gt;
+#include &lt;unistd.h&gt;
+
+#define MIN_NR_OF_UNITS 1024
+
+typedef long Aling;
+
+union header
+{
+  struct
+  {
+    union header *free_block_p;
+    size_t size;
+  } s;
+  Aling x; // Force alignment of blocks.
+};
+
+typedef union header Header;
+
+static Header base;
+static Header *free_p = NULL;
+
+void c_free(void *a_p);
+void c_bfree(void *a_p, size_t block_size);
+void *c_malloc(size_t nr_of_bytes);
+void *c_calloc(size_t nr_of_blocks, size_t block_size);
+Header *c_morecore(size_t nr_of_units);
+
+int main(int argc, char *argv[])
+{
+  char *test_malloc_str_p;
+  if ((test_malloc_str_p = c_malloc(27 * sizeof(char))) == NULL)
+  {
+    printf(&quot;Error: malloc faild to allocate the requrested memory.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  strcpy(test_malloc_str_p, &quot;Content from malloc here.&quot;);
+  printf(&quot;%s\n&quot;, test_malloc_str_p);
+  c_free(test_malloc_str_p);
+
+  char *test_calloc_str_p;
+  if ((test_calloc_str_p = c_calloc(27, sizeof(char))) == NULL)
+  {
+    printf(&quot;Error: calloc faild to allocate the requrested memory.\n&quot;);
+    return EXIT_FAILURE;
+  }
+
+  strcpy(test_calloc_str_p, &quot;Content from calloc here.&quot;);
+  printf(&quot;%s\n&quot;, test_calloc_str_p);
+  c_free(test_calloc_str_p);
+
+  char test_bfree[1024] = &quot;Some test content here.&quot;;
+  c_bfree(test_bfree, 1024);
+
+  return EXIT_SUCCESS;
+}
+
+void c_free(void *a_p)
+{
+  Header *p;
+  Header *b_p = (Header *)a_p - 1;
+
+  if (b_p-&gt;s.size == 0 || b_p-&gt;s.size == UINT_MAX - MIN_NR_OF_UNITS)
+  {
+    fprintf(stderr, &quot;Error(free): invalid block size %zu\n&quot;, b_p-&gt;s.size);
+    return;
+  }
+
+  for (p = free_p; !(b_p &gt; p &amp;&amp; b_p &lt; p-&gt;s.free_block_p); p = p-&gt;s.free_block_p)
+  {
+    if (p &gt;= p-&gt;s.free_block_p &amp;&amp; (b_p &gt; p || b_p &lt; p-&gt;s.free_block_p))
+    {
+      break;
+    }
+  }
+
+  if (b_p + b_p-&gt;s.size == p-&gt;s.free_block_p)
+  {
+    b_p-&gt;s.size += p-&gt;s.free_block_p-&gt;s.size;
+    b_p-&gt;s.free_block_p = p-&gt;s.free_block_p-&gt;s.free_block_p;
+  }
+  else
+  {
+    b_p-&gt;s.free_block_p = p-&gt;s.free_block_p;
+  }
+
+  if (p + p-&gt;s.size == b_p)
+  {
+    p-&gt;s.size += b_p-&gt;s.size;
+    p-&gt;s.free_block_p = b_p-&gt;s.free_block_p;
+  }
+  else
+  {
+    p-&gt;s.free_block_p = b_p;
+  }
+
+  free_p = p;
+}
+
+void c_bfree(void *p, size_t block_size)
+{
+  Header *b_p;
+
+  if (block_size &lt; MIN_NR_OF_UNITS)
+  {
+    fprintf(stderr, &quot;Error: block must be at least of size %d\n&quot;, MIN_NR_OF_UNITS);
+    return;
+  }
+
+  b_p = (Header *)p;
+  b_p-&gt;s.size = (block_size / sizeof(Header)) - 1;
+  c_free((void *)(b_p + 1));
+}
+
+void *c_malloc(size_t nr_of_bytes)
+{
+  Header *p;
+  Header *prev_p;
+
+  if (nr_of_bytes == 0 || nr_of_bytes &gt;= UINT_MAX - MIN_NR_OF_UNITS)
+  {
+    fprintf(stderr, &quot;Error(malloc): invalid size %zu\n&quot;, nr_of_bytes);
+    return NULL;
+  }
+
+  size_t nr_of_units = (nr_of_bytes + sizeof(Header) - 1) / sizeof(Header);
+
+  if ((prev_p = free_p) == NULL)
+  {
+    base.s.free_block_p = free_p = prev_p = &amp;base;
+    base.s.size = 0;
+  }
+
+  for (p = prev_p-&gt;s.free_block_p;; prev_p = p, p = p-&gt;s.free_block_p)
+  {
+    if (p-&gt;s.size &gt;= nr_of_units)
+    {
+      if (p-&gt;s.size == nr_of_units)
+      {
+        prev_p-&gt;s.free_block_p = p-&gt;s.free_block_p;
+      }
+      else
+      {
+        p-&gt;s.size -= nr_of_units;
+        p += p-&gt;s.size;
+        p-&gt;s.size = nr_of_units;
+      }
+
+      free_p = prev_p;
+      return (void *)(p + 1);
+    }
+
+    if (p == free_p)
+    {
+      if ((p = c_morecore(nr_of_units)) == NULL)
+      {
+        return NULL;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+void *c_calloc(size_t nr_of_blocks, size_t block_size)
+{
+  void *p = NULL;
+  if ((p = c_malloc(nr_of_blocks * block_size)) == NULL)
+  {
+    return NULL;
+  }
+  memset(p, 0, nr_of_blocks * block_size);
+
+  return p;
+}
+
+Header *c_morecore(size_t nr_of_units)
+{
+  char *c_p;
+  Header *u_p;
+
+  if (nr_of_units &lt; MIN_NR_OF_UNITS)
+  {
+    nr_of_units = MIN_NR_OF_UNITS;
+  }
+
+  c_p = sbrk(nr_of_units * sizeof(Header));
+  if (c_p == (char *)-1)
+  {
+    return NULL;
+  }
+
+  u_p = (Header *)c_p;
+  u_p-&gt;s.size = nr_of_units;
+  c_free((void *)(u_p + 1));
+
+  return free_p;
+}
+
+      </code></pre>
+    </div>
+    <footer>Generated from OutisNemosseus/the-c-programming-language-2nd-edition-solutions ? Chapter page</footer>
+  </main>
+</body>
+</html>

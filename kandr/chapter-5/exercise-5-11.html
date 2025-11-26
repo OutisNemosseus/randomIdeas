@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exercise 5.11: Entab - K&R C Programming</title>
+
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      height: 100vh; display: flex; flex-direction: column;
+      background: #0b1020; color: #e5e7eb;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0f172a;
+    }
+    header h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    header .breadcrumb {
+      font-size: 0.9rem; color: #9ca3af;
+      margin-left: auto;
+    }
+    header .breadcrumb a {
+      color: #60a5fa; text-decoration: none;
+    }
+    header .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    button {
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      border: 1px solid #334155; background: #111827; color: #e5e7eb;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:hover { background: #1f2937; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .main {
+      flex: 1; display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      min-height: 0;
+    }
+    #editor { height: 100%; }
+    .right {
+      border-left: 1px solid #1f2937;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel {
+      padding: 0.6rem 0.8rem; border-bottom: 1px solid #1f2937;
+      background: #0b1224; font-size: 0.9rem;
+    }
+    #status { color: #9ca3af; }
+    #output {
+      flex: 1; padding: 0.8rem; margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem; white-space: pre-wrap; overflow: auto;
+      background: #050814;
+    }
+    .success { color: #4ade80; }
+    .error { color: #fca5a5; }
+
+    footer {
+      padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #9ca3af;
+      border-top: 1px solid #1f2937; background: #0f172a;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Exercise 5.11: Entab</h1>
+    <button id="runBtn" disabled>▶ Compile & Run</button>
+    <span id="status">Loading editor…</span>
+    <div class="breadcrumb">
+      <a href="../index.html">K&R Exercises</a> /
+      <a href="index.html">Chapter 5</a> /
+      Exercise 5.11
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="editor"></div>
+
+    <div class="right">
+      <div class="panel">Output</div>
+      <pre id="output">Click "Compile & Run" to execute your code...</pre>
+    </div>
+  </div>
+
+  <footer>
+    K&R C Programming Language Exercises • Wandbox API • Monaco Editor
+  </footer>
+
+<script>
+let editor = null;
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define DEFAULT_TAB_LENGTH 8
+
+int is_str_uint(char *str);
+int is_tab_stop_arg_list_valid(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
+{
+  if (!is_tab_stop_arg_list_valid(argc, argv))
+  {
+    puts("Error: invalid tab stop list.\\n");
+    return EXIT_FAILURE;
+  }
+
+  int c;
+  size_t arg_pos = 1;
+  size_t line_pos = 0;
+  size_t tab_stop = DEFAULT_TAB_LENGTH;
+  size_t nr_of_spaces = 0;
+  size_t nr_of_custom_tab_stops = argc - 1;
+
+  while ((c = getchar()) != EOF)
+  {
+    ++line_pos;
+
+    if (c == ' ')
+    {
+      ++nr_of_spaces;
+
+      if (nr_of_custom_tab_stops)
+      {
+        tab_stop = atoi(argv[arg_pos]);
+      }
+      else if (argc > 1)
+      {
+        tab_stop = 1;
+      }
+
+      if (line_pos % tab_stop == 0 && nr_of_spaces > 1)
+      {
+        putchar('\\t');
+
+        if (nr_of_custom_tab_stops)
+        {
+          ++arg_pos;
+          --nr_of_custom_tab_stops;
+        }
+
+        nr_of_spaces = 0;
+      }
+    }
+    else
+    {
+      while (nr_of_spaces)
+      {
+        putchar(' ');
+        --nr_of_spaces;
+      }
+
+      if (c == '\\n')
+      {
+        arg_pos = 1;
+        line_pos = 0;
+        nr_of_custom_tab_stops = argc - 1;
+      }
+
+      putchar(c);
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int is_str_uint(char *str)
+{
+  for (size_t i = 0; i < strlen(str); ++i)
+  {
+    if (!isdigit(str[i]))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int is_tab_stop_arg_list_valid(int argc, char *argv[])
+{
+  for (size_t i = 1; i < argc; ++i)
+  {
+    if (!is_str_uint(argv[i]) || (i > 1 && atoi(argv[i - 1]) > atoi(argv[i])))
+    {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+// NOTE: The current program works in a similar fashion as unexpand.
+// run: ./entab 4 8 12 16 > file_tabs.txt < file_spaces.txt
+`,
+    language: "c",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true
+  });
+
+  runBtn.disabled = false;
+  status("Editor ready. Press Compile & Run.");
+});
+
+const runBtn = document.getElementById("runBtn");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+
+function status(msg){ statusEl.textContent = msg; }
+function out(msg="", className=""){
+  outputEl.textContent = msg;
+  outputEl.className = className;
+}
+
+runBtn.addEventListener("click", async () => {
+  out("Compiling and running...");
+  status("Running...");
+  runBtn.disabled = true;
+
+  const code = editor.getValue();
+
+  try {
+    const response = await fetch('https://wandbox.org/api/compile.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        compiler: 'gcc-head',
+        code: code,
+        options: 'warning,gnu++1y',
+        stdin: '',
+        'compiler-option-raw': '-lm'
+      })
+    });
+
+    const result = await response.json();
+
+    let outputText = '';
+    if (result.program_output) {
+      outputText += '✅ Output:\n' + result.program_output;
+    }
+    if (result.program_error) {
+      outputText += '\n⚠️ Errors:\n' + result.program_error;
+    }
+    if (result.compiler_error) {
+      outputText += '\n❌ Compile Error:\n' + result.compiler_error;
+    }
+
+    out(outputText || '✅ Program completed successfully (no output)',
+        result.compiler_error ? 'error' : 'success');
+    status(result.compiler_error ? "Compile error." : "Run complete.");
+
+  } catch (e) {
+    out('❌ Error: ' + (e.message || String(e)), 'error');
+    status("Error.");
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

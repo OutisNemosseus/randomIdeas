@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exercise 6.6: Define - K&R C Programming</title>
+
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      height: 100vh; display: flex; flex-direction: column;
+      background: #0b1020; color: #e5e7eb;
+    }
+    header {
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0f172a;
+    }
+    header h1 { font-size: 1rem; margin: 0; font-weight: 600; }
+    header .breadcrumb {
+      font-size: 0.9rem; color: #9ca3af;
+      margin-left: auto;
+    }
+    header .breadcrumb a {
+      color: #60a5fa; text-decoration: none;
+    }
+    header .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    button {
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      border: 1px solid #334155; background: #111827; color: #e5e7eb;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:hover { background: #1f2937; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .main {
+      flex: 1; display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      min-height: 0;
+    }
+    #editor { height: 100%; }
+    .right {
+      border-left: 1px solid #1f2937;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel {
+      padding: 0.6rem 0.8rem; border-bottom: 1px solid #1f2937;
+      background: #0b1224; font-size: 0.9rem;
+    }
+    #status { color: #9ca3af; }
+    #output {
+      flex: 1; padding: 0.8rem; margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem; white-space: pre-wrap; overflow: auto;
+      background: #050814;
+    }
+    .success { color: #4ade80; }
+    .error { color: #fca5a5; }
+
+    footer {
+      padding: 0.4rem 0.8rem; font-size: 0.8rem; color: #9ca3af;
+      border-top: 1px solid #1f2937; background: #0f172a;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>Exercise 6.6: Define</h1>
+    <button id="runBtn" disabled>▶ Compile & Run</button>
+    <span id="status">Loading editor…</span>
+    <div class="breadcrumb">
+      <a href="../index.html">K&R Exercises</a> /
+      <a href="index.html">Chapter 6</a> /
+      Exercise 6.6
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="editor"></div>
+
+    <div class="right">
+      <div class="panel">Output</div>
+      <pre id="output">Click "Compile & Run" to execute your code...</pre>
+    </div>
+  </div>
+
+  <footer>
+    K&R C Programming Language Exercises • Wandbox API • Monaco Editor
+  </footer>
+
+<script>
+let editor = null;
+
+require.config({
+  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs" }
+});
+
+require(["vs/editor/editor.main"], () => {
+  editor = monaco.editor.create(document.getElementById("editor"), {
+    value: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define HASH_SIZE 101
+#define MAX_LINE_LEN 1000
+#define MAX_WORD_LEN 100
+
+enum boolean
+{
+  FALSE,
+  TRUE
+};
+
+enum directive_type
+{
+  NONE = 0,
+  DEFINE = 1,
+  UNDEF = 2
+};
+
+struct list_node
+{
+  char *name;
+  char *definition;
+  struct list_node *next;
+};
+
+// There is a strdup available with POSIX, but it's not part of ISO C.
+char *str_dup(char *src);
+
+size_t hash(char *str);
+struct list_node *lookup(char *str);
+struct list_node *install(char *name, char *definition);
+enum boolean undef(char *name);
+
+int get_word(char *word, size_t max_word_len);
+size_t get_alnum_str(char *str, size_t max_str_len);
+
+void consume_word(char *word, char *Error_str);
+void consume_blanks(void);
+void consume_comments(void);
+void consume_chars_between(char start, char end);
+void consume_char_literal(void);
+void consume_string_literal(void);
+void consume_preproc(void);
+
+static struct list_node *hash_table[HASH_SIZE];
+
+int main(void)
+{
+  int c;
+  char word[MAX_WORD_LEN];
+  while ((c = get_word(word, MAX_WORD_LEN)) != EOF)
+  {
+    if (isalpha(c))
+    {
+      struct list_node *node_p = lookup(word);
+      if (node_p != NULL)
+      {
+        printf("%s", node_p->definition);
+      }
+      else
+      {
+        printf("%s", word);
+      }
+    }
+    else
+    {
+
+      if (c == '/')
+      {
+        ungetc(c, stdin);
+        consume_comments();
+      }
+      else if (c == '\\'')
+      {
+        ungetc(c, stdin);
+        consume_char_literal();
+      }
+      else if (c == '"')
+      {
+        ungetc(c, stdin);
+        consume_string_literal();
+      }
+      else if (c == '#')
+      {
+        ungetc(c, stdin);
+        consume_preproc();
+      }
+      else
+      {
+        putc(c, stdout);
+      }
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+char *str_dup(char *src)
+{
+  char *dest = (char *)malloc(strlen(src) + 1);
+  if (dest != NULL)
+  {
+    strcpy(dest, src);
+  }
+  return dest;
+}
+
+size_t hash(char *str)
+{
+  size_t hash_value = 0;
+  while (*str != '\\0')
+  {
+    hash_value = *str + 31 * hash_value;
+    ++str;
+  }
+  return hash_value % HASH_SIZE;
+}
+
+struct list_node *lookup(char *str)
+{
+  struct list_node *node_p;
+  for (node_p = hash_table[hash(str)]; node_p != NULL; node_p = node_p->next)
+  {
+    if (strcmp(str, node_p->name) == 0)
+    {
+      return node_p;
+    }
+  }
+  return NULL;
+}
+
+struct list_node *install(char *name, char *definition)
+{
+  struct list_node *node_p;
+  if ((node_p = lookup(name)) == NULL)
+  {
+    node_p = (struct list_node *)malloc(sizeof(*node_p));
+    if (node_p == NULL || (node_p->name = str_dup(name)) == NULL)
+    {
+      return NULL;
+    }
+    size_t hash_value = hash(name);
+    node_p->next = hash_table[hash_value];
+    hash_table[hash_value] = node_p;
+  }
+  else
+  {
+    free(node_p->definition);
+  }
+
+  if ((node_p->definition = str_dup(definition)) == NULL)
+  {
+    return NULL;
+  }
+
+  return node_p;
+}
+
+enum boolean undef(char *name)
+{
+  struct list_node *node_p;
+  struct list_node *prev_node_p;
+  size_t hash_value = hash(name);
+  for (node_p = hash_table[hash_value], prev_node_p = NULL;
+       node_p != NULL;
+       prev_node_p = node_p, node_p = node_p->next)
+  {
+    if (strcmp(name, node_p->name) == 0)
+    {
+      free(node_p->name);
+      free(node_p->definition);
+
+      if (prev_node_p == NULL)
+      {
+        hash_table[hash_value] = node_p->next;
+      }
+      else
+      {
+        prev_node_p->next = node_p->next;
+      }
+
+      free(node_p);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+int get_word(char *word, size_t max_word_len)
+{
+  int c = getc(stdin);
+  size_t i = 0;
+
+  if (c != EOF)
+  {
+    word[i++] = c;
+  }
+
+  if (!isalpha(c) && c != '_')
+  {
+    word[i] = '\\0';
+    return c;
+  }
+
+  while ((isalnum(c = getc(stdin)) || c == '_') && i < max_word_len)
+  {
+    word[i++] = c;
+  }
+  ungetc(c, stdin);
+  word[i] = '\\0';
+
+  return word[0];
+}
+
+size_t get_alnum_str(char *str, size_t max_str_len)
+{
+  size_t i = 0;
+  int c;
+  while (isalnum(c = getc(stdin)) && i < max_str_len)
+  {
+    str[i++] = c;
+  }
+  str[i] = '\\0';
+  ungetc(c, stdin);
+  return i;
+}
+
+void consume_word(char *word, char *Error_str)
+{
+  int c;
+  if ((c = get_word(word, MAX_WORD_LEN)) == EOF)
+  {
+    ungetc(c, stdin);
+    return;
+  }
+  else if (!isalpha(c))
+  {
+    puts(Error_str);
+  }
+  printf("%s", word);
+}
+
+void consume_blanks(void)
+{
+  int c;
+  while (isblank(c = getc(stdin)))
+  {
+    putc(c, stdout);
+  }
+  ungetc(c, stdin);
+}
+
+void consume_comments(void)
+{
+  int c = getc(stdin);
+  if (c == '/')
+  {
+    putc(c, stdout);
+
+    c = getc(stdin);
+    if (c == '/')
+    {
+      putc(c, stdout);
+      while ((c = getc(stdin)) != '\\n' && c != EOF)
+      {
+        putc(c, stdout);
+      }
+    }
+    else if (c == '*')
+    {
+      putc(c, stdout);
+      while ((c = getc(stdin)) != EOF)
+      {
+        putc(c, stdout);
+        if (c == '*')
+        {
+          c = getc(stdin);
+          putc(c, stdout);
+          if (c == '/')
+          {
+            break;
+          }
+        }
+      }
+
+      c = getc(stdin);
+      if (c == '/')
+      {
+        putc(c, stdout);
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void consume_chars_between(char start, char end)
+{
+  int c = getc(stdin);
+  if (c == start)
+  {
+    putc(c, stdout);
+    while ((c = getc(stdin)) != EOF)
+    {
+      putc(c, stdout);
+      if (c == '\\\\')
+      {
+        c = getc(stdin);
+        putc(c, stdout);
+        if (c == EOF)
+        {
+          break;
+        }
+      }
+      else if (c == end)
+      {
+        return;
+      }
+    }
+  }
+  ungetc(c, stdin);
+}
+
+void consume_char_literal(void)
+{
+  consume_chars_between('\\'', '\\'');
+}
+
+void consume_string_literal(void)
+{
+  consume_chars_between('"', '"');
+}
+
+void consume_preproc(void)
+{
+  int c = getc(stdin);
+  if (c == '#')
+  {
+    putc(c, stdout);
+
+    char word[MAX_WORD_LEN];
+    consume_word(word, "Error: expected preprocessor directive.");
+
+    enum directive_type directive = NONE;
+    if (strcmp(word, "define") == 0)
+    {
+      directive = DEFINE;
+    }
+    else if (strcmp(word, "undef") == 0)
+    {
+      directive = UNDEF;
+    }
+
+    if (directive)
+    {
+      consume_blanks();
+      consume_word(word, "Error: invalid name.");
+    }
+
+    if (directive == DEFINE)
+    {
+      consume_blanks();
+      char definition[MAX_WORD_LEN];
+      get_alnum_str(definition, MAX_WORD_LEN);
+      printf("%s", definition);
+
+      struct list_node *node_p = lookup(definition);
+      if (node_p != NULL)
+      {
+        install(word, node_p->definition);
+      }
+      else
+      {
+        install(word, definition);
+      }
+    }
+    else if (directive == UNDEF)
+    {
+      undef(word);
+    }
+  }
+  else
+  {
+    ungetc(c, stdin);
+  }
+}
+
+// NOTE: run: ./define < define.c
+`,
+    language: "c",
+    theme: "vs-dark",
+    fontSize: 14,
+    minimap: { enabled: false },
+    automaticLayout: true
+  });
+
+  runBtn.disabled = false;
+  status("Editor ready. Press Compile & Run.");
+});
+
+const runBtn = document.getElementById("runBtn");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+
+function status(msg){ statusEl.textContent = msg; }
+function out(msg="", className=""){
+  outputEl.textContent = msg;
+  outputEl.className = className;
+}
+
+runBtn.addEventListener("click", async () => {
+  out("Compiling and running...");
+  status("Running...");
+  runBtn.disabled = true;
+
+  const code = editor.getValue();
+
+  try {
+    const response = await fetch('https://wandbox.org/api/compile.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        compiler: 'gcc-head',
+        code: code,
+        options: 'warning,gnu++1y',
+        stdin: '',
+        'compiler-option-raw': '-lm'
+      })
+    });
+
+    const result = await response.json();
+
+    let outputText = '';
+    if (result.program_output) {
+      outputText += '✅ Output:\n' + result.program_output;
+    }
+    if (result.program_error) {
+      outputText += '\n⚠️ Errors:\n' + result.program_error;
+    }
+    if (result.compiler_error) {
+      outputText += '\n❌ Compile Error:\n' + result.compiler_error;
+    }
+
+    out(outputText || '✅ Program completed successfully (no output)',
+        result.compiler_error ? 'error' : 'success');
+    status(result.compiler_error ? "Compile error." : "Run complete.");
+
+  } catch (e) {
+    out('❌ Error: ' + (e.message || String(e)), 'error');
+    status("Error.");
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
